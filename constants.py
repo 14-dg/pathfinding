@@ -1,0 +1,11 @@
+
+
+# colors
+BLACK  = (0, 0, 0)
+WHITE  = (255, 255, 255)
+GREEN  = (0, 255, 0)
+RED    = (255, 0, 0)
+ORANGE = (255, 140, 0)
+ALICEBLUE  = (120, 200, 255)
+BLUEVIOLET = (138, 43, 226)
+DEEPSKYBLUE= (0,191,255)
