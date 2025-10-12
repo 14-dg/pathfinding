@@ -31,8 +31,7 @@ class DrawingBoard:
         self.length_squares = 25
         
         #sets size of screen
-        self.screen_width=1500
-        self.screen_height=750
+        self.screen_width, self.screen_height=self.grid.get_screen_dimensions()        
         self.size=[self.screen_width, self.screen_height]
         
         #shows screen
@@ -51,9 +50,9 @@ class DrawingBoard:
     
     
     def draw_board(self):
-        for column in range(0+self.margin, self.screen_height, self.length_squares+self.margin):
-            for row in range(0+self.margin, self.screen_width, self.length_squares+self.margin):
-                pygame.draw.rect(self.screen , ALICEBLUE, (row, column, self.length_squares, self.length_squares))
+        for h in self.grid.grid:
+            for w in h:
+                pygame.draw.rect(self.screen , ALICEBLUE, (w[0], w[1], w[2], w[3]))
 
         
     def get_cell_from_mouse_pos(self, pos_mouse: tuple) -> Cell:
@@ -138,5 +137,4 @@ class DrawingBoard:
         
         
 if __name__ == "__main__":
-    db = DrawingBoard(Grid(), Pathfinder(Grid()))
-    db.mainloop()
+    print("This is the drawing board module")
