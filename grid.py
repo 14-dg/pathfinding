@@ -1,5 +1,6 @@
 from typing import Any
 from cell import Cell
+from constants import *
 
 class Grid:
     def __init__(self, width: int, height: int, length_square: int, margin: int) -> None:
@@ -51,6 +52,11 @@ class Grid:
         if cell_ind:
             return self.change_type_of_cell(cell_ind, new_type)
         return None
+    
+    def clear_board(self) -> None:
+        for h in self.grid:
+            for c in h:
+                c.set_cell_type(EMPTY)
     
 if __name__ == "__main__":
     g = Grid(5, 5, 20, 2)

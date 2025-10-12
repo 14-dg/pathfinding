@@ -74,7 +74,8 @@ class DrawingBoard:
                     if event.key == pygame.K_RETURN:
                         self.pf.find()
                     elif event.key == pygame.K_SPACE:                            
-                        pass
+                        self.grid.clear_board()
+                        self.draw_board()
                     elif event.key == pygame.K_p:
                         target_cell = self.grid.find_and_change_type_of_cell(pos_mouse, TARGET)
                         if target_cell:
