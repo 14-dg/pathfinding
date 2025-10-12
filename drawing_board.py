@@ -40,30 +40,15 @@ class DrawingBoard:
         self.colors=[BLACK, WHITE, GREEN, RED, ORANGE, ALICEBLUE, BLUEVIOLET, DEEPSKYBLUE]
         self.pick_color=ALICEBLUE
         
-    
+    def draw_cell(self, c: Cell) -> None:
+        pygame.draw.rect(self.screen , c.color, (c.x, c.y, c.w, c.h))
     
     def draw_board(self):
         for h in self.grid.grid:
-            for w in h:
-                pygame.draw.rect(self.screen , ALICEBLUE, (w[0], w[1], w[2], w[3]))
-
-        
-    def get_cell_from_mouse_pos(self, pos_mouse: tuple) -> Cell:
-        return Cell()
-    
-    def add_starting_point(self, cell):
-        pass
-    
-    def add_target(self, cell):
-        pass
-    
-    def add_obstacle(self, cell):
-        pass
-    
-    def remove_board_cell(self, cell):
-        pass
-        
-    
+            for c in h:
+                self.draw_cell(c)
+                
+       
     def mainloop(self):
         
         self.draw_board()
@@ -91,34 +76,40 @@ class DrawingBoard:
                     elif event.key == pygame.K_SPACE:                            
                         pass
                     elif event.key == pygame.K_p:
-                        click_cell = self.get_cell_from_mouse_pos(pos_mouse)
-                        self.add_target(click_cell)
-                        self.pf.add_target(click_cell)
+                        target_cell = self.grid.find_and_change_type_of_cell(pos_mouse, TARGET)
+                        if target_cell:
+                            self.pf.add_target(target_cell)
+                            self.draw_cell(target_cell)
                                     
                 elif event.type == self.MOUSEBUTTONDOWN:
                     if event.button == 1:     
                         button_down=True                       
-                        left_click_cell = self.get_cell_from_mouse_pos(pos_mouse)
-                        self.add_obstacle(left_click_cell)
-                        self.pf.add_obstacle(left_click_cell)
+                        obstacle_cell = self.grid.find_and_change_type_of_cell(pos_mouse, OBSTACLE)
+                        if obstacle_cell:
+                            self.pf.add_obstacle(obstacle_cell)
+                            self.draw_cell(obstacle_cell)
 
                     if event.button == 2:
-                        middle_click_cell = self.get_cell_from_mouse_pos(pos_mouse)
-                        self.remove_board_cell(middle_click_cell)
-                        self.pf.remove_board_cell(middle_click_cell)
+                        remove_cell = self.grid.find_and_change_type_of_cell(pos_mouse, EMPTY)
+                        if remove_cell:
+                            self.pf.remove_board_cell(remove_cell)
+                            self.draw_cell(remove_cell)
 
                     if event.button == 3:
-                        right_click_cell = self.get_cell_from_mouse_pos(pos_mouse)
-                        self.add_starting_point(right_click_cell)
-                        self.pf.add_starting_point(right_click_cell)
+                        starting_cell = self.grid.find_and_change_type_of_cell(pos_mouse, STARTING_POINT)
+                        if starting_cell:
+                            self.pf.add_starting_point(starting_cell)
+                            self.draw_cell(starting_cell)
                 
                 elif event.type == self.MOUSEBUTTONUP:
                     button_down=False
 
                 if event.type == self.MOUSEMOTION and button_down==True:
-                    left_click_cell = self.get_cell_from_mouse_pos(pos_mouse)
-                    self.pf.add_obstacle(left_click_cell)
-                    
+                    obstacle_cell = self.grid.find_and_change_type_of_cell(pos_mouse, OBSTACLE)
+                    if obstacle_cell:
+                        self.pf.add_obstacle(obstacle_cell)
+                        self.draw_cell(obstacle_cell)
+                                        
             #sets time of the page updating             
             self.clock.tick(100)
 

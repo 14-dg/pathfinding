@@ -1,23 +1,30 @@
-
+from constants import *
 
 class Cell:
-    def __init__(self) -> None:
-        self.position: tuple = ()
-        self.color = None
-        self.is_obstacle: bool = False
-        self.is_starting_point: bool = False
-        self.is_target: bool = False
+    def __init__(self, x: int, y: int, w: int, h: int, 
+                 cell_type: str = EMPTY) -> None:
+        self.x = x
+        self.y = y
+        self.w = w
+        self.h = h        
+  
+        self.set_cell_type(cell_type)
+        
         self.g_cost: int = 0
         
-    def set_target(self):
-        self.is_target = True
-        self.color = (255, 0, 0)  # Red for target
+    def __repr__(self) -> str:
+        return f"Cell({self.x}, {self.y}, {self.w}, {self.h}, {self.cell_type})"
         
-    def set_obstacle(self):
-        self.is_obstacle = True
-        self.color = (0, 0, 0)  # Black for obstacle
+    def set_cell_type(self, cell_type: str) -> None:
+        self.cell_type = cell_type
+        self.color = cell_color[cell_type]
         
+    def inside_cell(self, pos: tuple) -> bool:
+        if self.x <= pos[0] <= self.x + self.w and self.y <= pos[1] <= self.y + self.h:
+            return True
+        return False
+    
         
 if __name__ == "__main__":
-    c = Cell()
-    print(c.position, c.color, c.is_obstacle, c.is_starting_point, c.is_target, c.g_cost)
+    c = Cell(0, 0, 20, 20, cell_type=TARGET)
+    print(c.x, c.y, c.w, c.h, c.cell_type, c.color)

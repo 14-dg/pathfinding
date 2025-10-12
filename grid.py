@@ -22,8 +22,8 @@ class Grid:
         for column in range(0, self.height):
             for row in range(0, self.width):
                 self.grid_ind[column].append(row)
-                self.grid[column].append((row * (self.length_squares + self.margin), 
-                                          column * (self.length_squares + self.margin),
+                self.grid[column].append(Cell(self.margin + row * (self.length_squares + self.margin), 
+                                          self.margin + column * (self.length_squares + self.margin),
                                           self.length_squares, 
                                           self.length_squares))
                         
@@ -32,8 +32,34 @@ class Grid:
         screen_height = self.height * (self.length_squares + self.margin) + self.margin
         return (screen_width, screen_height)
     
+    def find_cell_hit(self, pos: tuple) -> tuple|None:
+        pos_x, pos_y = pos[0], pos[1]
+        cell_ind_x = pos_x // (self.length_squares + self.margin)
+        cell_ind_y = pos_y // (self.length_squares + self.margin)
+        
+        if self.grid[cell_ind_y][cell_ind_x].inside_cell(pos):
+            return (cell_ind_x, cell_ind_y)
+        return None
+    
+    def change_type_of_cell(self, cell_ind: tuple, new_type: str) -> Cell|None:
+        cell_x, cell_y = cell_ind[0], cell_ind[1]
+        self.grid[cell_y][cell_x].set_cell_type(new_type)
+        return self.grid[cell_y][cell_x]
+        
+    def find_and_change_type_of_cell(self, pos: tuple, new_type: str) -> Cell|None:
+        cell_ind = self.find_cell_hit(pos)
+        if cell_ind:
+            return self.change_type_of_cell(cell_ind, new_type)
+        return None
+    
 if __name__ == "__main__":
     g = Grid(5, 5, 20, 2)
     print(g.grid_ind)
     for x in g.grid:
         print(x)
+        
+    print(g.get_screen_dimensions())
+    
+    print(g.find_cell_hit((2, 53)))
+    print(g.find_cell_hit((23, 0)))
+    print(g.find_cell_hit((43, 3)))
