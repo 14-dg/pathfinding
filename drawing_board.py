@@ -27,15 +27,8 @@ class DrawingBoard:
         self.MOUSEMOTION = pygame.MOUSEMOTION
         self.mouse = pygame.mouse.get_pressed()
         
-        self.margin = 2
-        self.length_squares = 25
-        
-        #sets size of screen
-        self.screen_width, self.screen_height=self.grid.get_screen_dimensions()        
-        self.size=[self.screen_width, self.screen_height]
-        
         #shows screen
-        self.screen = pygame.display.set_mode(self.size)
+        self.screen = pygame.display.set_mode(self.grid.get_screen_dimensions())
         
         #makes how fast it updates in ms
         self.clock = pygame.time.Clock()
