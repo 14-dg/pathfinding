@@ -82,6 +82,13 @@ class DrawingBoard:
                             # self.pf.add_target(target_cell)
                             for target_cell in cells:
                                 self.draw_cell(target_cell)
+                    elif event.key == pygame.K_s:
+                        print("--------------Debugging Info--------------------")
+                        print("Starting Points:", self.grid.starting_points)
+                        print("Targets:", self.grid.targets)
+                        print("Obstacles:", self.grid.obstacles)
+                        print("------------------------------------------------")
+                        print()
                                     
                 elif event.type == self.MOUSEBUTTONDOWN:
                     if event.button == 1:     

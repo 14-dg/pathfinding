@@ -51,59 +51,67 @@ class Grid:
         self.grid[cell_y][cell_x].set_cell_type(new_type)
         return self.grid[cell_y][cell_x]
     
-    def change_type_of_cell_target(self, cell_ind: tuple, new_type: str) -> List[Cell]|None:
+    def change_type_of_cell_target(self, cell_ind: tuple) -> List[Cell]|None:
         old_target = None
         if self.targets:
-            print(self.targets)
             old_target = self.targets.pop()
             old_target_cell_ind = self.find_cell_hit((old_target.x, old_target.y))
-            if old_target_cell_ind:   
-                print(old_target_cell_ind)             
+            if old_target_cell_ind:             
                 self.change_type_of_cell(old_target_cell_ind, EMPTY)
             else:
-                print("Error: old target cell not found in grid.")    
+                raise Exception("Error: old target cell not found in grid.")    
         
-        self.targets.append(self.change_type_of_cell(cell_ind, new_type))
+        self.targets.append(self.change_type_of_cell(cell_ind, TARGET))
         
         if old_target:
             return [old_target, *self.targets]
         else:
             return [*self.targets]
         
-    def change_type_of_cell_starting_point(self, cell_ind: tuple, new_type: str) -> List[Cell]|None:
+    def change_type_of_cell_starting_point(self, cell_ind: tuple) -> List[Cell]|None:
         old_starting_point = None
         if self.starting_points:
-            print(self.starting_points)
             old_starting_point = self.starting_points.pop()
             old_starting_point_cell_ind = self.find_cell_hit((old_starting_point.x, old_starting_point.y))
-            if old_starting_point_cell_ind:   
-                print(old_starting_point_cell_ind)             
+            if old_starting_point_cell_ind:            
                 self.change_type_of_cell(old_starting_point_cell_ind, EMPTY)
             else:
-                print("Error: old starting point cell not found in grid.")    
+                raise Exception("Error: old starting point cell not found in grid.")    
         
-        self.starting_points.append(self.change_type_of_cell(cell_ind, new_type))
+        self.starting_points.append(self.change_type_of_cell(cell_ind, STARTING_POINT))
         
         if old_starting_point:
             return [old_starting_point, *self.starting_points]
         else:
             return [*self.starting_points]
         
-    def change_type_of_cell_obstacle(self, cell_ind: tuple, new_type: str) -> Cell|None:
+    def change_type_of_cell_obstacle(self, cell_ind: tuple) -> Cell|None:
         self.obstacles.append(self.grid[cell_ind[1]][cell_ind[0]])
-        return self.change_type_of_cell(cell_ind, new_type) 
+        return self.change_type_of_cell(cell_ind, OBSTACLE)
+    
+    def change_type_of_cell_empty(self, cell_ind: tuple) -> Cell|None:
+        cell = self.grid[cell_ind[1]][cell_ind[0]]
+        if cell in self.obstacles:
+            self.obstacles.remove(cell)
+        if cell in self.targets:
+            self.targets.remove(cell)
+        if cell in self.starting_points:
+            self.starting_points.remove(cell)
+        return self.change_type_of_cell(cell_ind, EMPTY)
   
     def find_and_change_type_of_cell(self, pos: tuple, new_type: str) -> List[Cell]|None:
         cell_ind = self.find_cell_hit(pos)
-        
+
         c = None
         if cell_ind:
+            self.change_type_of_cell_empty(cell_ind)  # Reset cell to EMPTY before changing type
+            
             if new_type == TARGET:
-                return self.change_type_of_cell_target(cell_ind, new_type)
+                return self.change_type_of_cell_target(cell_ind)
             elif new_type == STARTING_POINT:
-                return self.change_type_of_cell_starting_point(cell_ind, new_type)
+                return self.change_type_of_cell_starting_point(cell_ind)
             elif new_type == OBSTACLE:
-                c = self.change_type_of_cell_obstacle(cell_ind, new_type)
+                c = self.change_type_of_cell_obstacle(cell_ind)
             else:
                 c = self.change_type_of_cell(cell_ind, new_type)
         if c:
