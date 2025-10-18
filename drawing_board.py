@@ -35,10 +35,7 @@ class DrawingBoard:
 
         #sets title
         pygame.display.set_caption("PATHFINDER")
-        
-        
-        self.colors=[BLACK, WHITE, GREEN, RED, ORANGE, ALICEBLUE, BLUEVIOLET, DEEPSKYBLUE]
-        self.pick_color=ALICEBLUE
+
         
     def draw_cell(self, c: Cell) -> None:
         pygame.draw.rect(self.screen , c.color, (c.x, c.y, c.w, c.h))
