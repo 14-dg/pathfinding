@@ -77,39 +77,44 @@ class DrawingBoard:
                         self.grid.clear_board()
                         self.draw_board()
                     elif event.key == pygame.K_p:
-                        target_cell = self.grid.find_and_change_type_of_cell(pos_mouse, TARGET)
-                        if target_cell:
-                            self.pf.add_target(target_cell)
-                            self.draw_cell(target_cell)
+                        cells = self.grid.find_and_change_type_of_cell(pos_mouse, TARGET)
+                        if cells:
+                            # self.pf.add_target(target_cell)
+                            for target_cell in cells:
+                                self.draw_cell(target_cell)
                                     
                 elif event.type == self.MOUSEBUTTONDOWN:
                     if event.button == 1:     
                         button_down=True                       
-                        obstacle_cell = self.grid.find_and_change_type_of_cell(pos_mouse, OBSTACLE)
-                        if obstacle_cell:
-                            self.pf.add_obstacle(obstacle_cell)
-                            self.draw_cell(obstacle_cell)
+                        cells = self.grid.find_and_change_type_of_cell(pos_mouse, OBSTACLE)
+                        if cells:
+                            # self.pf.add_obstacle(obstacle_cell)
+                            for obstacle_cell in cells:
+                                self.draw_cell(obstacle_cell)
 
                     if event.button == 2:
-                        remove_cell = self.grid.find_and_change_type_of_cell(pos_mouse, EMPTY)
-                        if remove_cell:
-                            self.pf.remove_board_cell(remove_cell)
-                            self.draw_cell(remove_cell)
+                        cells = self.grid.find_and_change_type_of_cell(pos_mouse, EMPTY)
+                        if cells:
+                            # self.pf.remove_board_cell(remove_cell)
+                            for remove_cell in cells:
+                                self.draw_cell(remove_cell)
 
                     if event.button == 3:
-                        starting_cell = self.grid.find_and_change_type_of_cell(pos_mouse, STARTING_POINT)
-                        if starting_cell:
-                            self.pf.add_starting_point(starting_cell)
-                            self.draw_cell(starting_cell)
+                        cells = self.grid.find_and_change_type_of_cell(pos_mouse, STARTING_POINT)
+                        if cells:
+                            # self.pf.add_starting_point(starting_cell)
+                            for starting_cell in cells:
+                                self.draw_cell(starting_cell)
                 
                 elif event.type == self.MOUSEBUTTONUP:
                     button_down=False
 
                 if event.type == self.MOUSEMOTION and button_down==True:
-                    obstacle_cell = self.grid.find_and_change_type_of_cell(pos_mouse, OBSTACLE)
-                    if obstacle_cell:
-                        self.pf.add_obstacle(obstacle_cell)
-                        self.draw_cell(obstacle_cell)
+                    cells = self.grid.find_and_change_type_of_cell(pos_mouse, OBSTACLE)
+                    if cells:
+                        # self.pf.add_obstacle(obstacle_cell)
+                        for obstacle_cell in cells:
+                            self.draw_cell(obstacle_cell)
                                         
             #sets time of the page updating             
             self.clock.tick(100)

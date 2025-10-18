@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, List
 from cell import Cell
 from constants import *
 
@@ -7,6 +7,10 @@ class Grid:
         self.grid_ind = []
         self.grid = []
         
+        self.targets = []
+        self.obstacles = []
+        self.starting_points = []
+         
         self.width = width
         self.height = height
         self.length_squares = length_square
@@ -46,17 +50,78 @@ class Grid:
         cell_x, cell_y = cell_ind[0], cell_ind[1]
         self.grid[cell_y][cell_x].set_cell_type(new_type)
         return self.grid[cell_y][cell_x]
+    
+    def change_type_of_cell_target(self, cell_ind: tuple, new_type: str) -> List[Cell]|None:
+        old_target = None
+        if self.targets:
+            print(self.targets)
+            old_target = self.targets.pop()
+            old_target_cell_ind = self.find_cell_hit((old_target.x, old_target.y))
+            if old_target_cell_ind:   
+                print(old_target_cell_ind)             
+                self.change_type_of_cell(old_target_cell_ind, EMPTY)
+            else:
+                print("Error: old target cell not found in grid.")    
         
-    def find_and_change_type_of_cell(self, pos: tuple, new_type: str) -> Cell|None:
+        self.targets.append(self.change_type_of_cell(cell_ind, new_type))
+        
+        if old_target:
+            return [old_target, *self.targets]
+        else:
+            return [*self.targets]
+        
+    def change_type_of_cell_starting_point(self, cell_ind: tuple, new_type: str) -> List[Cell]|None:
+        old_starting_point = None
+        if self.starting_points:
+            print(self.starting_points)
+            old_starting_point = self.starting_points.pop()
+            old_starting_point_cell_ind = self.find_cell_hit((old_starting_point.x, old_starting_point.y))
+            if old_starting_point_cell_ind:   
+                print(old_starting_point_cell_ind)             
+                self.change_type_of_cell(old_starting_point_cell_ind, EMPTY)
+            else:
+                print("Error: old starting point cell not found in grid.")    
+        
+        self.starting_points.append(self.change_type_of_cell(cell_ind, new_type))
+        
+        if old_starting_point:
+            return [old_starting_point, *self.starting_points]
+        else:
+            return [*self.starting_points]
+        
+    def change_type_of_cell_obstacle(self, cell_ind: tuple, new_type: str) -> Cell|None:
+        self.obstacles.append(self.grid[cell_ind[1]][cell_ind[0]])
+        return self.change_type_of_cell(cell_ind, new_type) 
+  
+    def find_and_change_type_of_cell(self, pos: tuple, new_type: str) -> List[Cell]|None:
         cell_ind = self.find_cell_hit(pos)
+        
+        c = None
         if cell_ind:
-            return self.change_type_of_cell(cell_ind, new_type)
+            if new_type == TARGET:
+                return self.change_type_of_cell_target(cell_ind, new_type)
+            elif new_type == STARTING_POINT:
+                return self.change_type_of_cell_starting_point(cell_ind, new_type)
+            elif new_type == OBSTACLE:
+                c = self.change_type_of_cell_obstacle(cell_ind, new_type)
+            else:
+                c = self.change_type_of_cell(cell_ind, new_type)
+        if c:
+            return [c]
         return None
     
     def clear_board(self) -> None:
         for h in self.grid:
             for c in h:
                 c.set_cell_type(EMPTY)
+                
+    def get_cells_of_type(self, cell_type: str) -> list:
+        cells = []
+        for h in self.grid:
+            for c in h:
+                if c.cell_type == cell_type:
+                    cells.append(c)
+        return cells
     
 if __name__ == "__main__":
     g = Grid(5, 5, 20, 2)
