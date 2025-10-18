@@ -47,7 +47,9 @@ class DrawingBoard:
         for h in self.grid.grid:
             for c in h:
                 self.draw_cell(c)
-                
+    
+    def pathfind_step_by_step(self):
+        self.pf.find()            
        
     def mainloop(self):
         
@@ -55,9 +57,15 @@ class DrawingBoard:
         
         button_down = False
         running = True
+        pathfind_mode = False
         
         #main loop
-        while running:                 
+        while running:
+            
+            if pathfind_mode:
+                self.pathfind_step_by_step()
+
+                             
             # --- Main event loop
             #checks every event
             for event in pygame.event.get():
@@ -72,11 +80,13 @@ class DrawingBoard:
                 elif event.type == pygame.KEYDOWN:
                     #checks for return key
                     if event.key == pygame.K_RETURN:
-                        self.pf.find()
-                    elif event.key == pygame.K_SPACE:                            
+                        pathfind_mode = not pathfind_mode
+                        print("Pathfinding mode:", pathfind_mode)
+
+                    elif event.key == pygame.K_SPACE and not pathfind_mode:                            
                         self.grid.clear_board()
                         self.draw_board()
-                    elif event.key == pygame.K_p:
+                    elif event.key == pygame.K_p and not pathfind_mode:
                         cells = self.grid.find_and_change_type_of_cell(pos_mouse, TARGET)
                         if cells:
                             # self.pf.add_target(target_cell)
@@ -90,7 +100,7 @@ class DrawingBoard:
                         print("------------------------------------------------")
                         print()
                                     
-                elif event.type == self.MOUSEBUTTONDOWN:
+                elif event.type == self.MOUSEBUTTONDOWN and not pathfind_mode:
                     if event.button == 1:     
                         button_down=True                       
                         cells = self.grid.find_and_change_type_of_cell(pos_mouse, OBSTACLE)
@@ -113,10 +123,10 @@ class DrawingBoard:
                             for starting_cell in cells:
                                 self.draw_cell(starting_cell)
                 
-                elif event.type == self.MOUSEBUTTONUP:
+                elif event.type == self.MOUSEBUTTONUP and not pathfind_mode:
                     button_down=False
 
-                if event.type == self.MOUSEMOTION and button_down==True:
+                if event.type == self.MOUSEMOTION and button_down==True and not pathfind_mode:
                     cells = self.grid.find_and_change_type_of_cell(pos_mouse, OBSTACLE)
                     if cells:
                         # self.pf.add_obstacle(obstacle_cell)

@@ -6,7 +6,7 @@ from grid import Grid
 
 class Pathfinder:
     def __init__(self, grid: Grid) -> None:
-        self.field = []
+        self.grid = grid
         self.starting_point = None
         self.target = None
         self.obstacles = []

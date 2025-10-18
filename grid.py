@@ -119,9 +119,11 @@ class Grid:
         return None
     
     def clear_board(self) -> None:
-        for h in self.grid:
-            for c in h:
-                c.set_cell_type(EMPTY)
+        for ind_y, h in enumerate(self.grid):
+            for ind_x, c in enumerate(h):
+                cell_ind = self.find_cell_hit((c.x, c.y))
+                if cell_ind:
+                    self.change_type_of_cell_empty(cell_ind)
                 
     def get_cells_of_type(self, cell_type: str) -> list:
         cells = []

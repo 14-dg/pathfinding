@@ -13,15 +13,19 @@ DEEPSKYBLUE= (0,191,255)
 
 
 # types of cells
-TARGET = 'target'
-OBSTACLE = 'obstacle'
-STARTING_POINT = 'starting_point'
-EMPTY = 'empty'
+TARGET = 'target'                   # target for pathfinding
+OBSTACLE = 'obstacle'               # obstacle for pathfinding
+STARTING_POINT = 'starting_point'   # starting point for pathfinding
+SEEN_POINT = 'seen_point'           # a temporary seen point cell during pathfinding
+WAY_POINT = 'way_point'             # the cell that is part of the final path
+EMPTY = 'empty'                     # empty cell
 
 # colors of cells
 cell_color = {
     TARGET: RED,
     OBSTACLE: BLACK,
     STARTING_POINT: GREEN,
-    EMPTY: ALICEBLUE
+    EMPTY: ALICEBLUE,
+    SEEN_POINT: BLUEVIOLET,
+    WAY_POINT: ORANGE
 }
