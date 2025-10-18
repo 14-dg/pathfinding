@@ -1,4 +1,5 @@
 import pygame
+import time
 
 from constants import *
 from cell import Cell
@@ -27,6 +28,10 @@ class DrawingBoard:
         self.MOUSEMOTION = pygame.MOUSEMOTION
         self.mouse = pygame.mouse.get_pressed()
         
+        # Create a custom event ID
+        self.TWO_SECOND_TIMEOUT = pygame.USEREVENT + 1
+        pygame.time.set_timer(self.TWO_SECOND_TIMEOUT, 2000)  # every 2000ms = 2 seconds
+        
         #shows screen
         self.screen = pygame.display.set_mode(self.grid.get_screen_dimensions())
         
@@ -46,7 +51,10 @@ class DrawingBoard:
                 self.draw_cell(c)
     
     def pathfind_step_by_step(self):
-        self.pf.find()            
+        cells = self.pf.find()
+        if cells:
+            for c in cells:
+                self.draw_cell(c)  
        
     def mainloop(self):
         
@@ -59,7 +67,7 @@ class DrawingBoard:
         #main loop
         while running:
             
-            if pathfind_mode:
+            if pathfind_mode and self.TWO_SECOND_TIMEOUT:
                 self.pathfind_step_by_step()
 
                              
@@ -86,7 +94,6 @@ class DrawingBoard:
                     elif event.key == pygame.K_p and not pathfind_mode:
                         cells = self.grid.find_and_change_type_of_cell(pos_mouse, TARGET)
                         if cells:
-                            # self.pf.add_target(target_cell)
                             for target_cell in cells:
                                 self.draw_cell(target_cell)
                     elif event.key == pygame.K_s:
@@ -94,7 +101,11 @@ class DrawingBoard:
                         print("Starting Points:", self.grid.starting_points)
                         print("Targets:", self.grid.targets)
                         print("Obstacles:", self.grid.obstacles)
+                        print("--------------Pathfinder Info-------------------")
+                        print("Seen Points:", self.grid.seen_points)
+                        print("Way Points:", self.grid.way_points)
                         print("------------------------------------------------")
+                        print()
                         print()
                                     
                 elif event.type == self.MOUSEBUTTONDOWN and not pathfind_mode:
@@ -102,21 +113,18 @@ class DrawingBoard:
                         button_down=True                       
                         cells = self.grid.find_and_change_type_of_cell(pos_mouse, OBSTACLE)
                         if cells:
-                            # self.pf.add_obstacle(obstacle_cell)
                             for obstacle_cell in cells:
                                 self.draw_cell(obstacle_cell)
 
                     if event.button == 2:
                         cells = self.grid.find_and_change_type_of_cell(pos_mouse, EMPTY)
                         if cells:
-                            # self.pf.remove_board_cell(remove_cell)
                             for remove_cell in cells:
                                 self.draw_cell(remove_cell)
 
                     if event.button == 3:
                         cells = self.grid.find_and_change_type_of_cell(pos_mouse, STARTING_POINT)
                         if cells:
-                            # self.pf.add_starting_point(starting_cell)
                             for starting_cell in cells:
                                 self.draw_cell(starting_cell)
                 
@@ -126,7 +134,6 @@ class DrawingBoard:
                 if event.type == self.MOUSEMOTION and button_down==True and not pathfind_mode:
                     cells = self.grid.find_and_change_type_of_cell(pos_mouse, OBSTACLE)
                     if cells:
-                        # self.pf.add_obstacle(obstacle_cell)
                         for obstacle_cell in cells:
                             self.draw_cell(obstacle_cell)
                                         
