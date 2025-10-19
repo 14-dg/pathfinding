@@ -8,9 +8,9 @@ from pathfinder import Pathfinder
 
 
 class DrawingBoard:
-    def __init__(self, grid: Grid, pf: Pathfinder) -> None:
+    def __init__(self, grid: Grid) -> None:
         self.grid = grid
-        self.pf = pf
+        self.pf = None
         
         self.initialise_canvas()
         
@@ -51,10 +51,15 @@ class DrawingBoard:
                 self.draw_cell(c)
     
     def pathfind_step_by_step(self):
+        if not self.pf:
+            self.pf = Pathfinder(self.grid)
         cells = self.pf.find()
+        print("Step complete, changed cells:", len(cells))
         if cells:
             for c in cells:
-                self.draw_cell(c)  
+                self.draw_cell(c)
+                
+        self.pf = None  # Reset Pathfinder for next run
        
     def mainloop(self):
         
@@ -65,12 +70,7 @@ class DrawingBoard:
         pathfind_mode = False
         
         #main loop
-        while running:
-            
-            if pathfind_mode and self.TWO_SECOND_TIMEOUT:
-                self.pathfind_step_by_step()
-
-                             
+        while running:                             
             # --- Main event loop
             #checks every event
             for event in pygame.event.get():
@@ -80,6 +80,9 @@ class DrawingBoard:
                 if event.type == pygame.QUIT:
                     #quits main loop
                     running = False
+                    
+                elif event.type == self.TWO_SECOND_TIMEOUT and pathfind_mode:
+                    self.pathfind_step_by_step()
                 
                 #checks key presses
                 elif event.type == pygame.KEYDOWN:

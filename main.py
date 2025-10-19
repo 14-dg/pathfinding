@@ -9,8 +9,7 @@ from drawing_board import DrawingBoard
 
 def main():
     g = Grid(70, 40, 20, 2)
-    pf = Pathfinder(g)
-    db = DrawingBoard(g, pf)
+    db = DrawingBoard(g)
     db.mainloop()
 
 if __name__ == "__main__":

@@ -163,7 +163,7 @@ class Grid:
                 if cell_ind:
                     self.change_type_of_cell_empty(cell_ind)
                     
-    def get_adjacent_cells(self, cell: Cell) -> List[Cell|None]:
+    def get_adjacent_cells(self, cell: Cell) -> List[Cell]|None:
         adjacent_cells = []
         cell_ind = self.find_cell_hit((cell.x, cell.y))
         if cell_ind:
@@ -175,8 +175,25 @@ class Grid:
                 if 0 <= new_x < self.width and 0 <= new_y < self.height:
                     adjacent_cells.append(self.grid[new_y][new_x])
                 else:
-                    adjacent_cells.append(None)
+                    pass
+                    # adjacent_cells.append(None)
+        if adjacent_cells == []:
+            return None
         return adjacent_cells
+    
+    def get_adjacent_non_obstacle_cells(self, cell: Cell) -> List[Cell]|None:
+        adjacent_cells = self.get_adjacent_cells(cell)
+        if not adjacent_cells:
+            return None
+        
+        adjacent_cells_empty = []
+        for cell in adjacent_cells:
+            if cell.cell_type != OBSTACLE:
+                adjacent_cells_empty.append(cell)
+            
+        if adjacent_cells_empty == []:
+            return None
+        return adjacent_cells_empty
                 
     def get_cells_of_type(self, cell_type: str) -> list:
         cells = []
