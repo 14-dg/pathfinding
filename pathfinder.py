@@ -1,6 +1,8 @@
 
 from __future__ import annotations
 import math
+import heapq
+import itertools
 
 from cell import Cell
 from grid import Grid
@@ -23,8 +25,11 @@ class Pathfinder:
             cost=cell.dist(self.grid.starting_points[0]))
             for row in self.grid.grid for cell in row}
                 
-        self.queue: list[tuple[float, Cell]] = []
+        self.queue: list[tuple[float, int, Cell]] = []
         self.visited: set[Cell] = set()
+        
+        self.counter = itertools.count()  # unique sequence count
+
         
 
     def dijkstra(self):#tuple[dict[Cell, Node], set[Cell]]:
@@ -32,10 +37,10 @@ class Pathfinder:
         
         for sp in self.grid.seen_points:
             self.G[sp].dist = 0.0
-            self.queue.append((0, sp))
+            heapq.heappush(self.queue, (0, next(self.counter), sp))
         
         while self.queue:
-            current_dist, current_cell = self.queue.pop(0)
+            current_dist, _, current_cell = heapq.heappop(self.queue)
             if current_cell in self.visited:
                 continue
             self.visited.add(current_cell)
@@ -53,22 +58,21 @@ class Pathfinder:
                     continue                
                                 
                 weight = self.G[adjacent_cell].cost
-                distance = current_dist + weight
+                distance = self.G[current_cell].dist + weight
                 if distance < self.G[adjacent_cell].dist:
                     self.G[adjacent_cell].dist = distance
                     self.G[adjacent_cell].parent = self.G[current_cell]
-                    self.queue.append((distance, adjacent_cell))
-                    self.queue.sort(key=lambda n: n[0])  # Sort queue by distance
+                    heapq.heappush(self.queue, (distance, next(self.counter), adjacent_cell))
                     
                     self.grid.find_and_change_type_of_cell((adjacent_cell.x, adjacent_cell.y), SEEN_POINT)
                     changed_cells.add(adjacent_cell)
-                            
+                         
             if changed_cells:
                 yield changed_cells
                 changed_cells = set()
         return changed_cells
     
-    def a_star(self):
+    def a_star(self, start_cell: Cell | None = None, end_cell: Cell | None = None):
         yield set()
     
     def shortest_path(self, algorithm: str, start_cell: Cell|None = None, end_cell: Cell|None = None, ):
