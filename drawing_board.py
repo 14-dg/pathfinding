@@ -29,8 +29,8 @@ class DrawingBoard:
         self.mouse = pygame.mouse.get_pressed()
         
         # Create a custom event ID
-        self.TWO_SECOND_TIMEOUT = pygame.USEREVENT + 1
-        pygame.time.set_timer(self.TWO_SECOND_TIMEOUT, 2000)  # every 2000ms = 2 seconds
+        self.TEN_MILLISECOND_TIMEOUT = pygame.USEREVENT + 1
+        pygame.time.set_timer(self.TEN_MILLISECOND_TIMEOUT, 10)  # every 10ms = 0.01 seconds
         
         #shows screen
         self.screen = pygame.display.set_mode(self.grid.get_screen_dimensions())
@@ -53,13 +53,22 @@ class DrawingBoard:
     def pathfind_step_by_step(self):
         if not self.pf:
             self.pf = Pathfinder(self.grid)
-        cells = self.pf.find()
-        print("Step complete, changed cells:", len(cells))
-        if cells:
-            for c in cells:
-                self.draw_cell(c)
-                
-        self.pf = None  # Reset Pathfinder for next run
+            self.find_gen = self.pf.find()
+        
+        
+        try:
+            if self.find_gen:
+                cells = next(self.find_gen)
+                # print("Step complete, changed cells:", len(cells))
+                if cells:
+                    for c in cells:
+                        self.draw_cell(c)
+        except StopIteration:
+            cells = None   
+
+            self.pf = None  # Reset Pathfinder for next run
+            self.find_gen = None
+            return True
        
     def mainloop(self):
         
@@ -68,6 +77,7 @@ class DrawingBoard:
         button_down = False
         running = True
         pathfind_mode = False
+        pathfind_finished = False
         
         #main loop
         while running:                             
@@ -81,8 +91,10 @@ class DrawingBoard:
                     #quits main loop
                     running = False
                     
-                elif event.type == self.TWO_SECOND_TIMEOUT and pathfind_mode:
-                    self.pathfind_step_by_step()
+                elif event.type == self.TEN_MILLISECOND_TIMEOUT and pathfind_mode and not pathfind_finished:
+                    if self.pathfind_step_by_step():
+                        print("pathfinder finished")
+                        pathfind_finished = True
                 
                 #checks key presses
                 elif event.type == pygame.KEYDOWN:
@@ -94,6 +106,8 @@ class DrawingBoard:
                     elif event.key == pygame.K_SPACE and not pathfind_mode:                            
                         self.grid.clear_board()
                         self.draw_board()
+                        pathfind_finished = False
+                        
                     elif event.key == pygame.K_p and not pathfind_mode:
                         cells = self.grid.find_and_change_type_of_cell(pos_mouse, TARGET)
                         if cells:

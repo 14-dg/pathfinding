@@ -27,7 +27,7 @@ class Pathfinder:
         self.visited: set[Cell] = set()
         
 
-    def dijkstra(self) -> set[Cell]:#tuple[dict[Cell, Node], set[Cell]]:
+    def dijkstra(self):#tuple[dict[Cell, Node], set[Cell]]:
         changed_cells = set()
         
         for sp in self.grid.seen_points:
@@ -63,10 +63,24 @@ class Pathfinder:
                     self.grid.find_and_change_type_of_cell((adjacent_cell.x, adjacent_cell.y), SEEN_POINT)
                     changed_cells.add(adjacent_cell)
                             
+            if changed_cells:
+                yield changed_cells
+                changed_cells = set()
         return changed_cells
     
-    def shortest_path(self, start_cell: Cell|None = None, end_cell: Cell|None = None) -> set[Cell]:
-        changed_cells = self.dijkstra()
+    def shortest_path(self, start_cell: Cell|None = None, end_cell: Cell|None = None):
+        dijkstra_gen = self.dijkstra()
+        while dijkstra_gen:
+            try:
+                changed_cells = next(dijkstra_gen)
+                yield changed_cells
+                changed_cells = set()
+            except StopIteration:
+                break
+        
+        changed_cells = set()
+
+        
         path = []
         current_cell = end_cell
         
@@ -80,19 +94,11 @@ class Pathfinder:
                 current_cell = parent.cell
             else:
                 current_cell = None
-            # for neighbor in self.grid.get_adjacent_cells(current_cell):
-                           
-                
-                
-            #     weight = self.G[neighbor].cost if neighbor else float("inf")
-            #     if self.G[neighbor] and self.G[neighbor].parent == self.G[current_cell]:
-                
-                
-                
-            #     if neighbor and dist[neighbor].dist + current_cell.dist == dist[current_cell].dist:
-            #         current_cell = neighbor
-            #         break
-        
+            
+            if changed_cells:    
+                yield changed_cells
+                changed_cells = set()
+            
         return changed_cells
     
     def a_star(self):
@@ -115,6 +121,16 @@ class Pathfinder:
     def find(self):
         if self.grid.seen_points == []:
             self.grid.seen_points = self.grid.starting_points.copy()
+        shortest_path_gen = self.shortest_path(self.grid.starting_points[0], self.grid.targets[0])
+        changed_cells = set()
         
-        return self.shortest_path(self.grid.starting_points[0], self.grid.targets[0])
+        while shortest_path_gen:
+            try:
+                changed_cells = next(shortest_path_gen) 
+                if changed_cells:
+                    yield changed_cells
+                    changed_cells = set()
+            except StopIteration:
+                break 
+        return
 
