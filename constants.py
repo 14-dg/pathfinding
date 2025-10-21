@@ -29,3 +29,8 @@ cell_color = {
     SEEN_POINT: BLUEVIOLET,
     WAY_POINT: ORANGE
 }
+
+
+# types of pathfining algorithms
+A_STAR = "a_star"
+DIJKSTRA = "dijkstra"

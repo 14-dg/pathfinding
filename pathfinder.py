@@ -68,11 +68,20 @@ class Pathfinder:
                 changed_cells = set()
         return changed_cells
     
-    def shortest_path(self, start_cell: Cell|None = None, end_cell: Cell|None = None):
-        dijkstra_gen = self.dijkstra()
-        while dijkstra_gen:
+    def a_star(self):
+        yield set()
+    
+    def shortest_path(self, start_cell: Cell|None = None, end_cell: Cell|None = None, algorithm: str = DIJKSTRA):
+        if algorithm == DIJKSTRA:
+            pathfinding_algorithm_gen = self.dijkstra()
+        elif algorithm == A_STAR:
+            pathfinding_algorithm_gen = self.a_star()
+        else:
+            pathfinding_algorithm_gen = self.dijkstra()
+            
+        while pathfinding_algorithm_gen:
             try:
-                changed_cells = next(dijkstra_gen)
+                changed_cells = next(pathfinding_algorithm_gen)
                 yield changed_cells
                 changed_cells = set()
             except StopIteration:
@@ -101,9 +110,6 @@ class Pathfinder:
             
         return changed_cells
     
-    def a_star(self):
-        pass
-    
     def breadth_first_search(self):
         changed_cells = []
         
@@ -118,10 +124,10 @@ class Pathfinder:
         return changed_cells
 
 
-    def find(self):
+    def find(self, algorithm:str):
         if self.grid.seen_points == []:
             self.grid.seen_points = self.grid.starting_points.copy()
-        shortest_path_gen = self.shortest_path(self.grid.starting_points[0], self.grid.targets[0])
+        shortest_path_gen = self.shortest_path(self.grid.starting_points[0], self.grid.targets[0], algorithm)
         changed_cells = set()
         
         while shortest_path_gen:
