@@ -49,6 +49,10 @@ class DrawingBoard:
         for h in self.grid.grid:
             for c in h:
                 self.draw_cell(c)
+                
+    def reset_pathfinder(self):
+        self.pf = None  # Reset Pathfinder for next run
+        self.find_gen = None
     
     def pathfind_step_by_step(self):
         if not self.pf:
@@ -65,9 +69,8 @@ class DrawingBoard:
                         self.draw_cell(c)
         except StopIteration:
             cells = None   
+            self.reset_pathfinder()
 
-            self.pf = None  # Reset Pathfinder for next run
-            self.find_gen = None
             return True
        
     def mainloop(self):
@@ -103,7 +106,8 @@ class DrawingBoard:
                         pathfind_mode = not pathfind_mode
                         print("Pathfinding mode:", pathfind_mode)
 
-                    elif event.key == pygame.K_SPACE and not pathfind_mode:                            
+                    elif event.key == pygame.K_SPACE and not pathfind_mode: 
+                        self.reset_pathfinder()                           
                         self.grid.clear_board()
                         self.draw_board()
                         pathfind_finished = False
