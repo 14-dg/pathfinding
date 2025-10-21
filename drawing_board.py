@@ -57,7 +57,7 @@ class DrawingBoard:
     def pathfind_step_by_step(self):
         if not self.pf:
             self.pf = Pathfinder(self.grid)
-            self.find_gen = self.pf.find(A_STAR)
+            self.find_gen = self.pf.find(DIJKSTRA)
         
         
         try:
@@ -117,6 +117,13 @@ class DrawingBoard:
                         if cells:
                             for target_cell in cells:
                                 self.draw_cell(target_cell)
+                                
+                    elif event.key == pygame.K_c and not pathfind_mode:
+                        self.grid.create_random_maze()
+                        self.reset_pathfinder()                           
+                        self.draw_board()
+                        pathfind_finished = False
+                                
                     elif event.key == pygame.K_s:
                         print("--------------Debugging Info--------------------")
                         print("Starting Points:", self.grid.starting_points)

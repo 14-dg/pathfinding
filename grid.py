@@ -1,4 +1,5 @@
 from typing import Any, List
+from random import randint
 from cell import Cell
 from constants import *
 
@@ -202,6 +203,24 @@ class Grid:
                 if c.cell_type == cell_type:
                     cells.append(c)
         return cells
+    
+    def create_random_maze(self):
+        for row in self.grid:
+            for cell in row:
+                n = randint(1, 100)
+
+                pos = (cell.x, cell.y)
+                if n<75:
+                    self.find_and_change_type_of_cell(pos, EMPTY)
+                elif n<=100:
+                    self.find_and_change_type_of_cell(pos, OBSTACLE)
+                                        
+        target_cell = self.grid[int(0.1 * self.height)][int(0.1 * self.height)]
+        pos_target = (target_cell.x, target_cell.y)
+        starting_point_cell = self.grid[int(0.9 * self.height)][int(0.9 * self.width)]
+        pos_starting_point = (starting_point_cell.x, starting_point_cell.y)
+        self.find_and_change_type_of_cell(pos_target, TARGET)
+        self.find_and_change_type_of_cell(pos_starting_point, STARTING_POINT)
     
 if __name__ == "__main__":
     g = Grid(5, 5, 20, 2)

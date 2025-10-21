@@ -71,7 +71,7 @@ class Pathfinder:
     def a_star(self):
         yield set()
     
-    def shortest_path(self, start_cell: Cell|None = None, end_cell: Cell|None = None, algorithm: str = DIJKSTRA):
+    def shortest_path(self, algorithm: str, start_cell: Cell|None = None, end_cell: Cell|None = None, ):
         if algorithm == DIJKSTRA:
             pathfinding_algorithm_gen = self.dijkstra()
         elif algorithm == A_STAR:
@@ -127,7 +127,7 @@ class Pathfinder:
     def find(self, algorithm:str):
         if self.grid.seen_points == []:
             self.grid.seen_points = self.grid.starting_points.copy()
-        shortest_path_gen = self.shortest_path(self.grid.starting_points[0], self.grid.targets[0], algorithm)
+        shortest_path_gen = self.shortest_path(algorithm, self.grid.starting_points[0], self.grid.targets[0])
         changed_cells = set()
         
         while shortest_path_gen:
