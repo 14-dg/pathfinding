@@ -67,10 +67,15 @@ class DrawingBoard:
                 if cells:
                     for c in cells:
                         self.draw_cell(c)
+                return False
         except StopIteration:
             cells = None   
             self.reset_pathfinder()
 
+            return True
+        except Exception as e:
+            print("Error during pathfinding step:", e)
+            self.reset_pathfinder()
             return True
        
     def mainloop(self):
