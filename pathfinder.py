@@ -22,7 +22,7 @@ class Pathfinder:
         self.grid = grid
         
         self.G = {cell: Node(cell, 
-            cost=cell.w+cell.h)
+            cost=cell.w)
             for row in self.grid.grid for cell in row}
                 
         self.queue: list[tuple[float, int, Cell]] = []
@@ -32,7 +32,7 @@ class Pathfinder:
 
         
 
-    def dijkstra(self):#tuple[dict[Cell, Node], set[Cell]]:
+    def dijkstra(self):
         changed_cells = set()
         
         for sp in self.grid.seen_points:
@@ -72,8 +72,48 @@ class Pathfinder:
                 changed_cells = set()
         return changed_cells
     
-    def a_star(self, start_cell: Cell | None = None, end_cell: Cell | None = None):
-        yield set()
+    def a_star(self):
+        changed_cells = set()
+        
+        for sp in self.grid.seen_points:
+            self.G[sp].dist = 0.0
+            heapq.heappush(self.queue, (0, next(self.counter), sp))
+        
+        while self.queue:
+            current_dist, _, current_cell = heapq.heappop(self.queue)
+            if current_cell in self.visited:
+                continue
+            self.visited.add(current_cell)
+            
+            if current_cell in self.grid.targets:
+                print("Target reached!")
+                break
+            
+            adjacent_cells = self.grid.get_adjacent_non_obstacle_cells(current_cell)
+            if adjacent_cells is None:
+                continue
+            
+            for adjacent_cell in adjacent_cells:
+                if not adjacent_cell:
+                    continue                
+                                
+                weight = self.G[adjacent_cell].cost
+                g_cost = self.G[current_cell].dist + weight                
+                h_cost = adjacent_cell.dist(self.grid.targets[0])
+                f_cost = g_cost + h_cost
+                
+                if g_cost < self.G[adjacent_cell].dist:
+                    self.G[adjacent_cell].dist = g_cost
+                    self.G[adjacent_cell].parent = self.G[current_cell]
+                    heapq.heappush(self.queue, (f_cost, next(self.counter), adjacent_cell))
+                    
+                    self.grid.find_and_change_type_of_cell((adjacent_cell.x, adjacent_cell.y), SEEN_POINT)
+                    changed_cells.add(adjacent_cell)
+                         
+            if changed_cells:
+                yield changed_cells
+                changed_cells = set()
+        return changed_cells
     
     def shortest_path(self, algorithm: str, start_cell: Cell|None = None, end_cell: Cell|None = None, ):
         if algorithm == DIJKSTRA:
