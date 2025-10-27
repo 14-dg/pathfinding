@@ -53,6 +53,11 @@ class Grid:
         cell_ind_x = pos_x // (self.length_squares + self.margin)
         cell_ind_y = pos_y // (self.length_squares + self.margin)
         
+        if cell_ind_x < 0 or cell_ind_x >= self.width:
+            cell_ind_x = -1
+        if cell_ind_y < 0 or cell_ind_y >= self.height:
+            cell_ind_y = -1
+        
         if self.grid[cell_ind_y][cell_ind_x].inside_cell(pos):
             return (cell_ind_x, cell_ind_y)
         return None
