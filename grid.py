@@ -169,6 +169,13 @@ class Grid:
                 if cell_ind:
                     self.change_type_of_cell_empty(cell_ind)
                     
+        self.targets = []
+        self.obstacles = []
+        self.starting_points = []
+        
+        self.seen_points = []
+        self.way_points = []
+                    
     def get_adjacent_cells(self, cell: Cell) -> List[Cell]|None:
         adjacent_cells = []
         cell_ind = self.find_cell_hit((cell.x, cell.y))
