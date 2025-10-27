@@ -151,20 +151,6 @@ class Pathfinder:
                 changed_cells = set()
             
         return changed_cells
-    
-    def breadth_first_search(self):
-        changed_cells = []
-        
-        # sps = self.grid.seen_points.copy()
-        # for sp_c in sps:
-        #     adjacent_cells = self.grid.get_adjacent_cells(sp_c)
-        #     for a_c in adjacent_cells:
-        #         if a_c:
-        #             cells = self.grid.find_and_change_type_of_cell((a_c.x, a_c.y), SEEN_POINT)
-        #             if cells:
-        #                 changed_cells.extend(cells)
-        return changed_cells
-
 
     def find(self, algorithm:str):
         if self.grid.seen_points == []:
