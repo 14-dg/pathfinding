@@ -10,10 +10,9 @@ from constants import *
 
 class Node:
     def __init__(self, cell: Cell, parent: Node|None = None, 
-                 cost:float = 1.0, dist:float = float("inf")) -> None:
+                 dist:float = float("inf")) -> None:
         self.cell = cell
         self.parent = parent
-        self.cost = cost
         self.dist = dist
 
 
@@ -21,8 +20,7 @@ class Pathfinder:
     def __init__(self, grid: Grid) -> None:
         self.grid = grid
         
-        self.G = {cell: Node(cell, 
-            cost=cell.w)
+        self.G = {cell: Node(cell)
             for row in self.grid.grid for cell in row}
                 
         self.queue: list[tuple[float, int, Cell]] = []
@@ -57,7 +55,7 @@ class Pathfinder:
                 if not adjacent_cell:
                     continue                
                                 
-                weight = self.G[adjacent_cell].cost
+                weight = adjacent_cell.dist(current_cell)
                 distance = self.G[current_cell].dist + weight
                 if distance < self.G[adjacent_cell].dist:
                     self.G[adjacent_cell].dist = distance
@@ -97,7 +95,7 @@ class Pathfinder:
                 if not adjacent_cell:
                     continue                
                                 
-                weight = self.G[adjacent_cell].cost
+                weight = adjacent_cell.dist(current_cell)
                 g_cost = self.G[current_cell].dist + weight                
                 h_cost = adjacent_cell.dist(self.grid.targets[0])
                 f_cost = g_cost + h_cost

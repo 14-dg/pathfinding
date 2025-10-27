@@ -57,7 +57,7 @@ class DrawingBoard:
     def pathfind_step_by_step(self):
         if not self.pf:
             self.pf = Pathfinder(self.grid)
-            self.find_gen = self.pf.find(A_STAR)
+            self.find_gen = self.pf.find(DIJKSTRA)
         
         
         try:

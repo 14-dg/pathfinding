@@ -181,7 +181,8 @@ class Grid:
         cell_ind = self.find_cell_hit((cell.x, cell.y))
         if cell_ind:
             x, y = cell_ind[0], cell_ind[1]
-            directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]  # left, right, up, down
+            directions = [(-1, 0), (1, 0), (0, -1), (0, 1),     # left, right, up, down
+                          (-1, -1), (-1, 1), (1, -1), (1, 1)]   # up-left, down-left, up-right, down-right
             for direction in directions:
                 new_x = x + direction[0]
                 new_y = y + direction[1]
