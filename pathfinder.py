@@ -22,7 +22,7 @@ class Pathfinder:
         self.grid = grid
         
         self.G = {cell: Node(cell, 
-            cost=cell.dist(self.grid.starting_points[0]))
+            cost=cell.w+cell.h)
             for row in self.grid.grid for cell in row}
                 
         self.queue: list[tuple[float, int, Cell]] = []
