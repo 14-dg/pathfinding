@@ -4,7 +4,8 @@ from cell import Cell
 from constants import *
 
 class Grid:
-    def __init__(self, width: int, height: int, length_square: int, margin: int) -> None:
+    def __init__(self, width: int, height: int, length_square: int, 
+                 margin: int, offset_x: int=0, offset_y:int=0) -> None:
         self.grid_ind = []
         self.grid = []
         
@@ -19,6 +20,8 @@ class Grid:
         self.height = height
         self.length_squares = length_square
         self.margin = margin
+        self.offset_x = offset_x
+        self.offset_y = offset_y
         self.create_grid()
         
     def __setattr__(self, name: str, value: Any) -> None:
@@ -31,8 +34,8 @@ class Grid:
         for column in range(0, self.height):
             for row in range(0, self.width):
                 self.grid_ind[column].append(row)
-                self.grid[column].append(Cell(self.margin + row * (self.length_squares + self.margin), 
-                                          self.margin + column * (self.length_squares + self.margin),
+                self.grid[column].append(Cell(self.offset_x + self.margin + row * (self.length_squares + self.margin), 
+                                          self.offset_y + self.margin + column * (self.length_squares + self.margin),
                                           self.length_squares, 
                                           self.length_squares))
                         
@@ -53,9 +56,9 @@ class Grid:
         cell_ind_x = pos_x // (self.length_squares + self.margin)
         cell_ind_y = pos_y // (self.length_squares + self.margin)
         
-        if cell_ind_x < 0 or cell_ind_x >= self.width:
+        if cell_ind_x < self.offset_x or cell_ind_x >= self.width+self.offset_x:
             cell_ind_x = -1
-        if cell_ind_y < 0 or cell_ind_y >= self.height:
+        if cell_ind_y < self.offset_y or cell_ind_y >= self.height+self.offset_y:
             cell_ind_y = -1
         
         if self.grid[cell_ind_y][cell_ind_x].inside_cell(pos):
