@@ -53,12 +53,12 @@ class Grid:
     
     def find_cell_hit(self, pos: tuple) -> tuple|None:
         pos_x, pos_y = pos[0], pos[1]
-        cell_ind_x = pos_x // (self.length_squares + self.margin)
-        cell_ind_y = pos_y // (self.length_squares + self.margin)
+        cell_ind_x = (pos_x - self.offset_x) // (self.length_squares + self.margin)
+        cell_ind_y = (pos_y - self.offset_y) // (self.length_squares + self.margin)
         
-        if cell_ind_x < self.offset_x or cell_ind_x >= self.width+self.offset_x:
+        if cell_ind_x < 0 or cell_ind_x >= self.width:
             cell_ind_x = -1
-        if cell_ind_y < self.offset_y or cell_ind_y >= self.height+self.offset_y:
+        if cell_ind_y < 0 or cell_ind_y >= self.height:
             cell_ind_y = -1
         
         if self.grid[cell_ind_y][cell_ind_x].inside_cell(pos):
