@@ -30,6 +30,9 @@ cell_color = {
     WAY_POINT: ORANGE
 }
 
+# types of grids
+MAIN_GRID = "main_grid"
+SECONDARY_GRID = "secondary_grid"
 
 # types of pathfining algorithms
 A_STAR = "a_star"
