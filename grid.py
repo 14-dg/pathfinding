@@ -4,10 +4,9 @@ from cell import Cell
 from constants import *
 
 class Grid:
-    def __init__(self, width: int, height: int, length_square: int, 
-                 margin: int, offset_x: int=0, offset_y:int=0) -> None:
-        self.grid_ind = []
+    def __init__(self, width: int, height: int, grid_name: str = MAIN_GRID) -> None:
         self.grid = []
+        self.grid_name = grid_name
         
         self.targets = []
         self.obstacles = []
@@ -18,65 +17,36 @@ class Grid:
          
         self.width = width
         self.height = height
-        self.length_squares = length_square
-        self.margin = margin
-        self.offset_x = offset_x
-        self.offset_y = offset_y
         self.create_grid()
         
     def __setattr__(self, name: str, value: Any) -> None:
         super().__setattr__(name, value)
         
     def create_grid(self) -> None:
-        self.grid_ind = [[] for h in range(self.height)]
         self.grid = [[] for h in range(self.height)]
         
-        for column in range(0, self.height):
-            for row in range(0, self.width):
-                self.grid_ind[column].append(row)
-                self.grid[column].append(Cell(self.offset_x + self.margin + row * (self.length_squares + self.margin), 
-                                          self.offset_y + self.margin + column * (self.length_squares + self.margin),
-                                          self.length_squares, 
-                                          self.length_squares))
-                        
-    def get_screen_dimensions(self) -> tuple:
-        screen_width = self.width * (self.length_squares + self.margin) + self.margin
-        screen_height = self.height * (self.length_squares + self.margin) + self.margin
-        return (screen_width, screen_height)
+        for row in range(0, self.height):
+            for column in range(0, self.width):
+                self.grid[row].append(Cell(column, row, grid_name=self.grid_name))
     
     def is_cell_unoccupied(self, cell_ind: tuple) -> bool:
-        cell_x, cell_y = cell_ind[0], cell_ind[1]
-        cell = self.grid[cell_y][cell_x]
+        cell_row, cell_column  = cell_ind[0], cell_ind[1]
+        cell = self.grid[cell_row][cell_column]
         if cell.cell_type in [TARGET, STARTING_POINT, OBSTACLE]:
             return False
         return True
     
-    def find_cell_hit(self, pos: tuple) -> tuple|None:
-        pos_x, pos_y = pos[0], pos[1]
-        cell_ind_x = (pos_x - self.offset_x) // (self.length_squares + self.margin)
-        cell_ind_y = (pos_y - self.offset_y) // (self.length_squares + self.margin)
-        
-        if cell_ind_x < 0 or cell_ind_x >= self.width:
-            cell_ind_x = -1
-        if cell_ind_y < 0 or cell_ind_y >= self.height:
-            cell_ind_y = -1
-        
-        if self.grid[cell_ind_y][cell_ind_x].inside_cell(pos):
-            return (cell_ind_x, cell_ind_y)
-        return None
-    
     def change_type_of_cell(self, cell_ind: tuple, new_type: str) -> Cell|None:
-        cell_x, cell_y = cell_ind[0], cell_ind[1]
-        self.grid[cell_y][cell_x].set_cell_type(new_type)
-        return self.grid[cell_y][cell_x]
+        cell_row, cell_column  = cell_ind[0], cell_ind[1]
+        self.grid[cell_row][cell_column].set_cell_type(new_type)
+        return self.grid[cell_row][cell_column]
     
     def change_type_of_cell_target(self, cell_ind: tuple) -> List[Cell]|None:
         old_target = None
         if self.targets:
             old_target = self.targets.pop()
-            old_target_cell_ind = self.find_cell_hit((old_target.x, old_target.y))
-            if old_target_cell_ind:             
-                self.change_type_of_cell(old_target_cell_ind, EMPTY)
+            if old_target:             
+                self.change_type_of_cell(old_target.get_cell_ind(), EMPTY)
             else:
                 raise Exception("Error: old target cell not found in grid.")    
         
@@ -91,9 +61,8 @@ class Grid:
         old_starting_point = None
         if self.starting_points:
             old_starting_point = self.starting_points.pop()
-            old_starting_point_cell_ind = self.find_cell_hit((old_starting_point.x, old_starting_point.y))
-            if old_starting_point_cell_ind:            
-                self.change_type_of_cell(old_starting_point_cell_ind, EMPTY)
+            if old_starting_point:            
+                self.change_type_of_cell(old_starting_point.get_cell_ind(), EMPTY)
             else:
                 raise Exception("Error: old starting point cell not found in grid.")    
         
@@ -106,21 +75,21 @@ class Grid:
         
     def change_type_of_cell_seen_point(self, cell_ind: tuple) -> Cell|None:
         if self.is_cell_unoccupied(cell_ind):
-            self.seen_points.append(self.grid[cell_ind[1]][cell_ind[0]])
+            self.seen_points.append(self.grid[cell_ind[0]][cell_ind[1]])
             return self.change_type_of_cell(cell_ind, SEEN_POINT)
     
     def change_type_of_cell_way_point(self, cell_ind: tuple) -> Cell|None:
         if self.is_cell_unoccupied(cell_ind):
-            self.way_points.append(self.grid[cell_ind[1]][cell_ind[0]])
+            self.way_points.append(self.grid[cell_ind[0]][cell_ind[1]])
             return self.change_type_of_cell(cell_ind, WAY_POINT)
         
     def change_type_of_cell_obstacle(self, cell_ind: tuple) -> Cell|None:
-        if self.grid[cell_ind[1]][cell_ind[0]] not in self.obstacles:
-            self.obstacles.append(self.grid[cell_ind[1]][cell_ind[0]])
+        if self.grid[cell_ind[0]][cell_ind[1]] not in self.obstacles:
+            self.obstacles.append(self.grid[cell_ind[0]][cell_ind[1]])
             return self.change_type_of_cell(cell_ind, OBSTACLE)
     
     def change_type_of_cell_empty(self, cell_ind: tuple) -> Cell|None:
-        cell = self.grid[cell_ind[1]][cell_ind[0]]
+        cell = self.grid[cell_ind[0]][cell_ind[1]]
         if cell in self.obstacles:
             self.obstacles.remove(cell)
         if cell in self.targets:
@@ -133,8 +102,7 @@ class Grid:
             self.way_points.remove(cell)
         return self.change_type_of_cell(cell_ind, EMPTY)
   
-    def find_and_change_type_of_cell(self, pos: tuple, new_type: str) -> List[Cell]|None:
-        cell_ind = self.find_cell_hit(pos)
+    def find_and_change_type_of_cell(self, cell_ind: tuple, new_type: str) -> List[Cell]|None:
 
         c = None
         if cell_ind:
@@ -166,11 +134,10 @@ class Grid:
         return None
     
     def clear_board(self) -> None:
-        for ind_y, h in enumerate(self.grid):
-            for ind_x, c in enumerate(h):
-                cell_ind = self.find_cell_hit((c.x, c.y))
-                if cell_ind:
-                    self.change_type_of_cell_empty(cell_ind)
+        for ind_y, column in enumerate(self.grid):
+            for ind_x, c in enumerate(column):
+                if c:
+                    self.change_type_of_cell_empty(c.get_cell_ind())
                     
         self.targets = []
         self.obstacles = []
@@ -181,16 +148,15 @@ class Grid:
                     
     def get_adjacent_cells(self, cell: Cell) -> List[Cell]|None:
         adjacent_cells = []
-        cell_ind = self.find_cell_hit((cell.x, cell.y))
-        if cell_ind:
-            x, y = cell_ind[0], cell_ind[1]
+        if cell:
+            row, column  = cell.get_cell_ind()
             directions = [(-1, 0), (1, 0), (0, -1), (0, 1),     # left, right, up, down
                           (-1, -1), (-1, 1), (1, -1), (1, 1)]   # up-left, down-left, up-right, down-right
             for direction in directions:
-                new_x = x + direction[0]
-                new_y = y + direction[1]
-                if 0 <= new_x < self.width and 0 <= new_y < self.height:
-                    adjacent_cells.append(self.grid[new_y][new_x])
+                new_column = column + direction[0]
+                new_row = row + direction[1]
+                if 0 <= new_column < self.width and 0 <= new_row < self.height:
+                    adjacent_cells.append(self.grid[new_row][new_column])
                 else:
                     pass
                     # adjacent_cells.append(None)
@@ -220,32 +186,26 @@ class Grid:
                     cells.append(c)
         return cells
     
-    def create_random_maze(self):
-        for row in self.grid:
-            for cell in row:
-                n = randint(1, 100)
 
-                pos = (cell.x, cell.y)
-                if n<75:
-                    self.find_and_change_type_of_cell(pos, EMPTY)
-                elif n<=100:
-                    self.find_and_change_type_of_cell(pos, OBSTACLE)
-                                        
-        target_cell = self.grid[int(0.1 * self.height)][int(0.1 * self.height)]
-        pos_target = (target_cell.x, target_cell.y)
-        starting_point_cell = self.grid[int(0.9 * self.height)][int(0.9 * self.width)]
-        pos_starting_point = (starting_point_cell.x, starting_point_cell.y)
-        self.find_and_change_type_of_cell(pos_target, TARGET)
-        self.find_and_change_type_of_cell(pos_starting_point, STARTING_POINT)
+    
     
 if __name__ == "__main__":
-    g = Grid(5, 5, 20, 2)
-    print(g.grid_ind)
-    for x in g.grid:
-        print(x)
-        
-    print(g.get_screen_dimensions())
+    g = Grid(10, 10)
+    print("Initial Grid:")
+    for row in g.grid:
+        print(row)
     
-    print(g.find_cell_hit((2, 53)))
-    print(g.find_cell_hit((23, 0)))
-    print(g.find_cell_hit((43, 3)))
+    print("\nChanging cell (2,3) to OBSTACLE:")
+    g.change_type_of_cell_obstacle((2, 3))
+    for row in g.grid:
+        print(row)
+    
+    print("\nChanging cell (5,5) to TARGET:")
+    g.change_type_of_cell_target((5, 5))
+    for row in g.grid:
+        print(row)
+    
+    print("\nAdjacent cells to (5,5):")
+    target_cell = g.grid[5][5]
+    adjacent_cells = g.get_adjacent_cells(target_cell)
+    print(adjacent_cells)
