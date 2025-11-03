@@ -10,8 +10,7 @@ class Cell:
         self.grid_name = grid_name
         
         # they get set in set_cell_type
-        self.cell_type = None
-        self.color = None  
+        self.cell_type = cell_type
         self.set_cell_type(cell_type)
         
     def __repr__(self) -> str:
