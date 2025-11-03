@@ -31,7 +31,7 @@ class Cell:
     
     def set_cell_type(self, cell_type: str) -> None:
         self.cell_type = cell_type
-        self.color = cell_color[cell_type]
+        self.color = CELL_COLOR[cell_type]
     
     def dist(self, other: Cell) -> float:
         return ((self.row_ind - other.row_ind) ** 2 + (self.column_ind - other.column_ind) ** 2) ** 0.5

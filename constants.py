@@ -21,7 +21,7 @@ WAY_POINT = 'way_point'             # the cell that is part of the final path
 EMPTY = 'empty'                     # empty cell
 
 # colors of cells
-cell_color = {
+CELL_COLOR = {
     TARGET: RED,
     OBSTACLE: BLACK,
     STARTING_POINT: GREEN,
