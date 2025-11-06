@@ -1,28 +1,31 @@
 import pygame
 import time
+from typing import Sequence
 
 from constants import *
 from cell import Cell
 from grid import Grid
 from pathfinder import Pathfinder
+from drawing_grid import DrawingGrid
 
 
 class DrawingBoard:
-    def __init__(self, grid: Grid) -> None:
-        self.grid = grid
+    def __init__(self, **drawing_grids: DrawingGrid) -> None:
+        self.drawing_grids = drawing_grids
+        
         self.pf = None
         
         self.initialise_canvas()
         
-    def initialise_canvas(self):
-        #lets pygame initialate and makes it usebale
+    def initialise_canvas(self) -> None:
+        #lets pygame initialise and makes it usebale
         pygame.init()
 
         pygame.font.init()  # you have to call this at the start, 
                             # if you want to use this module.
         self.myfont = pygame.font.SysFont('Comic Sans MS', 50)
         
-        #lets the peogramm detect a mouse press
+        #lets the program detect a mouse press
         self.MOUSEBUTTONUP = pygame.MOUSEBUTTONUP
         self.MOUSEBUTTONDOWN = pygame.MOUSEBUTTONDOWN
         self.MOUSEMOTION = pygame.MOUSEMOTION
@@ -33,22 +36,32 @@ class DrawingBoard:
         pygame.time.set_timer(self.TEN_MILLISECOND_TIMEOUT, 10)  # every 10ms = 0.01 seconds
         
         #shows screen
-        self.screen = pygame.display.set_mode(self.grid.get_screen_dimensions())
+        screen_width = 0
+        screen_height = 0
+        for dg in self.drawing_grids.values():
+            size = dg.get_screen_dimensions()
+            screen_width = max(size[0], screen_width)
+            screen_height = max(size[1], screen_height)            
+        self.screen = pygame.display.set_mode((screen_width, screen_height))
         
         #makes how fast it updates in ms
         self.clock = pygame.time.Clock()
 
         #sets title
         pygame.display.set_caption("PATHFINDER")
-
         
-    def draw_cell(self, c: Cell) -> None:
-        pygame.draw.rect(self.screen , c.color, (c.x, c.y, c.w, c.h))
     
-    def draw_board(self):
-        for h in self.grid.grid:
-            for c in h:
-                self.draw_cell(c)
+    def draw_boards(self):
+        for dg in self.drawing_grids.values():
+            dg.draw_board(self.screen)
+            
+    def clear_boards(self):
+        for dg in self.drawing_grids.values():
+            dg.clear_board(self.screen)
+            
+    def create_random_mazes(self):
+        for dg in self.drawing_grids.values():
+            dg.create_random_maze()
                 
     def reset_pathfinder(self):
         self.pf = None  # Reset Pathfinder for next run
@@ -56,17 +69,23 @@ class DrawingBoard:
     
     def pathfind_step_by_step(self):
         if not self.pf:
-            self.pf = Pathfinder(self.grid)
+            self.pf = Pathfinder(self.drawing_grids[MAIN_GRID].grid)
             self.find_gen = self.pf.find(DIJKSTRA)
         
         
         try:
             if self.find_gen:
                 cells = next(self.find_gen)
-                # print("Step complete, changed cells:", len(cells))
                 if cells:
                     for c in cells:
-                        self.draw_cell(c)
+                        pos_cell = self.drawing_grids[MAIN_GRID].get_pos_of_cell(c.get_cell_ind())
+                        if pos_cell:
+                            self.drawing_grids[MAIN_GRID].draw_cell(self.screen, c,
+                                                                 pos_cell[0], pos_cell[1],
+                                                                 self.drawing_grids[MAIN_GRID].length_squares,
+                                                                 self.drawing_grids[MAIN_GRID].length_squares)
+                        else:
+                            print("Could not get position of cell:", c, "in pathfinder step")
                 return False
         except StopIteration:
             cells = None   
@@ -80,7 +99,7 @@ class DrawingBoard:
        
     def mainloop(self):
         
-        self.draw_board()
+        self.draw_boards()
         
         button_down = False
         running = True
@@ -113,30 +132,26 @@ class DrawingBoard:
 
                     elif event.key == pygame.K_SPACE and not pathfind_mode: 
                         self.reset_pathfinder()                           
-                        self.grid.clear_board()
-                        self.draw_board()
+                        self.clear_boards()
                         pathfind_finished = False
                         
                     elif event.key == pygame.K_p and not pathfind_mode:
-                        cells = self.grid.find_and_change_type_of_cell(pos_mouse, TARGET)
-                        if cells:
-                            for target_cell in cells:
-                                self.draw_cell(target_cell)
+                        self.drawing_grids[MAIN_GRID].find_and_change_type_of_cell(self.screen, pos_mouse, TARGET)
                                 
                     elif event.key == pygame.K_c and not pathfind_mode:
-                        self.grid.create_random_maze()
+                        self.create_random_mazes()
                         self.reset_pathfinder()                           
-                        self.draw_board()
+                        self.draw_boards()
                         pathfind_finished = False
                                 
                     elif event.key == pygame.K_s:
                         print("--------------Debugging Info--------------------")
-                        print("Starting Points:", self.grid.starting_points)
-                        print("Targets:", self.grid.targets)
-                        print("Obstacles:", self.grid.obstacles)
+                        print("Starting Points:", self.drawing_grids[MAIN_GRID].grid.starting_points)
+                        print("Targets:", self.drawing_grids[MAIN_GRID].grid.targets)
+                        print("Obstacles:", self.drawing_grids[MAIN_GRID].grid.obstacles)
                         print("--------------Pathfinder Info-------------------")
-                        print("Seen Points:", self.grid.seen_points)
-                        print("Way Points:", self.grid.way_points)
+                        print("Seen Points:", self.drawing_grids[MAIN_GRID].grid.seen_points)
+                        print("Way Points:", self.drawing_grids[MAIN_GRID].grid.way_points)
                         print("------------------------------------------------")
                         print()
                         print()
@@ -144,31 +159,19 @@ class DrawingBoard:
                 elif event.type == self.MOUSEBUTTONDOWN and not pathfind_mode:
                     if event.button == 1:     
                         button_down=True                       
-                        cells = self.grid.find_and_change_type_of_cell(pos_mouse, OBSTACLE)
-                        if cells:
-                            for obstacle_cell in cells:
-                                self.draw_cell(obstacle_cell)
+                        self.drawing_grids[MAIN_GRID].find_and_change_type_of_cell(self.screen, pos_mouse, OBSTACLE)
 
                     if event.button == 2:
-                        cells = self.grid.find_and_change_type_of_cell(pos_mouse, EMPTY)
-                        if cells:
-                            for remove_cell in cells:
-                                self.draw_cell(remove_cell)
+                        self.drawing_grids[MAIN_GRID].find_and_change_type_of_cell(self.screen, pos_mouse, EMPTY)
 
                     if event.button == 3:
-                        cells = self.grid.find_and_change_type_of_cell(pos_mouse, STARTING_POINT)
-                        if cells:
-                            for starting_cell in cells:
-                                self.draw_cell(starting_cell)
+                        self.drawing_grids[MAIN_GRID].find_and_change_type_of_cell(self.screen, pos_mouse, STARTING_POINT)
                 
                 elif event.type == self.MOUSEBUTTONUP and not pathfind_mode:
                     button_down=False
 
                 if event.type == self.MOUSEMOTION and button_down==True and not pathfind_mode:
-                    cells = self.grid.find_and_change_type_of_cell(pos_mouse, OBSTACLE)
-                    if cells:
-                        for obstacle_cell in cells:
-                            self.draw_cell(obstacle_cell)
+                    self.drawing_grids[MAIN_GRID].find_and_change_type_of_cell(self.screen, pos_mouse, OBSTACLE)
                                         
             #sets time of the page updating             
             self.clock.tick(100)
