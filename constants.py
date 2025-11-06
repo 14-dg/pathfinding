@@ -31,8 +31,8 @@ CELL_COLOR = {
 }
 
 # types of grids
-MAIN_GRID = "main_grid"
-SECONDARY_GRID = "secondary_grid"
+MAIN_GRID = "MAIN_GRID"
+SECONDARY_GRID = "SECONDARY_GRID"
 
 # types of pathfining algorithms
 A_STAR = "a_star"

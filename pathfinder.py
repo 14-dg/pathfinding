@@ -62,7 +62,7 @@ class Pathfinder:
                     self.G[adjacent_cell].parent = self.G[current_cell]
                     heapq.heappush(self.queue, (distance, next(self.counter), adjacent_cell))
                     
-                    self.grid.find_and_change_type_of_cell((adjacent_cell.x, adjacent_cell.y), SEEN_POINT)
+                    self.grid.find_and_change_type_of_cell(adjacent_cell.get_cell_ind(), SEEN_POINT)
                     changed_cells.add(adjacent_cell)
                          
             if changed_cells:
@@ -105,7 +105,7 @@ class Pathfinder:
                     self.G[adjacent_cell].parent = self.G[current_cell]
                     heapq.heappush(self.queue, (f_cost, next(self.counter), adjacent_cell))
                     
-                    self.grid.find_and_change_type_of_cell((adjacent_cell.x, adjacent_cell.y), SEEN_POINT)
+                    self.grid.find_and_change_type_of_cell(adjacent_cell.get_cell_ind(), SEEN_POINT)
                     changed_cells.add(adjacent_cell)
                          
             if changed_cells:
@@ -137,7 +137,7 @@ class Pathfinder:
         
         while current_cell and current_cell != start_cell:
             path.append(current_cell)
-            self.grid.find_and_change_type_of_cell((current_cell.x, current_cell.y), WAY_POINT)
+            self.grid.find_and_change_type_of_cell(current_cell.get_cell_ind(), WAY_POINT)
             changed_cells.add(current_cell)
                 
             parent = self.G[current_cell].parent

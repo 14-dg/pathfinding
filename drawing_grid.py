@@ -88,7 +88,6 @@ class DrawingGrid:
             if cell_list:
                 for cell in cell_list:
                     pos_cell = self.get_pos_of_cell(cell.get_cell_ind())
-                    print(pos_cell)
                     if pos_cell:
                         self.draw_cell(screen, cell, pos_cell[0], pos_cell[1], self.length_squares, self.length_squares)
         return None
