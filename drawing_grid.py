@@ -49,14 +49,25 @@ class DrawingGrid:
         pos_in_cell_x = (pos_x - self.offset_x) / (self.length_squares + self.margin)
         pos_in_cell_y = (pos_y - self.offset_y) / (self.length_squares + self.margin)
         
-        cell_ind_x = int(round(pos_in_cell_x))
-        cell_ind_y = int(round(pos_in_cell_y))
+        cell_column = int(round(pos_in_cell_x))
+        cell_row = int(round(pos_in_cell_y))
         
-        if 0 <= cell_ind_x or cell_ind_x <= self.grid.width:
-            cell_ind_x = -1
-        if 0 <= cell_ind_y or cell_ind_y <= self.grid.height:
-            cell_ind_y = -1
-        return (cell_ind_x, cell_ind_y)
+        if 0 > cell_column or cell_column >= self.grid.width:
+            cell_column = -1
+        if 0 > cell_row or cell_row >= self.grid.height:
+            cell_row = -1
+        return (cell_row, cell_column)
+    
+    def get_pos_of_cell(self, cell_ind: tuple) -> tuple|None:
+        cell_row, cell_column = cell_ind[0], cell_ind[1]
+        if 0 > cell_column or cell_column >= self.grid.width:
+            return None
+        if 0 > cell_row or cell_row >= self.grid.height:
+            return None
+        
+        x = self.offset_x + cell_column * (self.length_squares + self.margin)
+        y = self.offset_y + cell_row * (self.length_squares + self.margin)
+        return (x, y)
     
     def draw_cell(self, screen, c: Cell, x, y, w, h) -> None:
         pygame.draw.rect(screen , c.color, (x, y, w, h))
@@ -65,6 +76,21 @@ class DrawingGrid:
         for row in self.draw_grid:
             for column in row:
                 self.draw_cell(screen, *column)
+                
+    def clear_board(self, screen):
+        self.grid.clear_board()
+        self.draw_board(screen)
+        
+    def find_and_change_type_of_cell(self, screen, pos: tuple, cell_type: str) -> None:
+        cell_ind = self.find_cell_hit(pos)
+        if cell_ind:
+            cell_list = self.grid.find_and_change_type_of_cell(cell_ind, cell_type)
+            if cell_list:
+                for cell in cell_list:
+                    pos_cell = self.get_pos_of_cell(cell_ind)
+                    if pos_cell:
+                        self.draw_cell(screen, cell, pos_cell[0], pos_cell[1], self.length_squares, self.length_squares)
+        return None
                 
     def create_random_maze(self):
         for row in self.grid.grid:
