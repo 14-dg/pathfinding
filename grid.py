@@ -27,7 +27,7 @@ class Grid:
         
         for row in range(0, self.height):
             for column in range(0, self.width):
-                self.grid[row].append(Cell(column, row, grid_name=self.grid_name))
+                self.grid[row].append(Cell(row, column, grid_name=self.grid_name))
     
     def is_cell_unoccupied(self, cell_ind: tuple) -> bool:
         cell_row, cell_column  = cell_ind[0], cell_ind[1]
@@ -134,8 +134,8 @@ class Grid:
         return None
     
     def clear_board(self) -> None:
-        for ind_y, column in enumerate(self.grid):
-            for ind_x, c in enumerate(column):
+        for ind_y, row in enumerate(self.grid):
+            for ind_x, c in enumerate(row):
                 if c:
                     self.change_type_of_cell_empty(c.get_cell_ind())
                     
