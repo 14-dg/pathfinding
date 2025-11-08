@@ -70,6 +70,9 @@ class DrawingBoard:
             
     def find_board_hit(self, pos: tuple) -> tuple[str, tuple]|None:
         for grid_name, dg in self.drawing_grids.items():
+            if grid_name not in [MAIN_GRID, ROVER_GRID]:
+                continue
+            
             cell_ind = dg.find_cell_hit(pos)
             if cell_ind[0] != -1 and cell_ind[1] != -1:
                 return grid_name, cell_ind
@@ -108,7 +111,25 @@ class DrawingBoard:
             print("Error during pathfinding step:", e)
             self.reset_pathfinder()
             return True
-       
+        
+    def show_sensor_data(self):
+        self.clear_board(SENSOR_GRID)
+        if self.drawing_grids[MAIN_GRID].grid.starting_points:
+            start_cell = self.drawing_grids[MAIN_GRID].grid.starting_points[0]
+            free_cells, occupied_cells = simulate_lidar_scan(self.drawing_grids[MAIN_GRID].grid, start_cell.get_cell_ind(), 
+                                                                scan_range=20, points_per_rotation=180)
+            # print("LIDAR Scan from", start_cell.get_cell_ind())
+            # print("Free cells detected by LIDAR: ", free_cells)
+            # print("Occupied cells detected by LIDAR: ", occupied_cells)
+            
+            for free_cell in free_cells:
+                self.drawing_grids[SENSOR_GRID].change_type_of_cell(self.screen, free_cell, EXPECTED_FREE)
+            for occupied_cell in occupied_cells:
+                self.drawing_grids[SENSOR_GRID].change_type_of_cell(self.screen, occupied_cell, EXPECTED_OCCUPIED)
+        else:
+            # print("No starting point set for LIDAR scan.")
+            pass
+
     def mainloop(self):
         
         self.draw_boards()
@@ -178,21 +199,7 @@ class DrawingBoard:
                         print()
                         
                     elif event.key == pygame.K_s and not pathfind_mode:
-                        self.clear_board(SENSOR_GRID)
-                        if self.drawing_grids[MAIN_GRID].grid.starting_points:
-                            start_cell = self.drawing_grids[MAIN_GRID].grid.starting_points[0]
-                            free_cells, occupied_cells = simulate_lidar_scan(self.drawing_grids[MAIN_GRID].grid, start_cell.get_cell_ind(), 
-                                                                             scan_range=20, points_per_rotation=180)
-                            print("LIDAR Scan from", start_cell.get_cell_ind())
-                            print("Free cells detected by LIDAR: ", free_cells)
-                            print("Occupied cells detected by LIDAR: ", occupied_cells)
-                            
-                            for free_cell in free_cells:
-                                self.drawing_grids[SENSOR_GRID].change_type_of_cell(self.screen, free_cell, EXPECTED_FREE)
-                            for occupied_cell in occupied_cells:
-                                self.drawing_grids[SENSOR_GRID].change_type_of_cell(self.screen, occupied_cell, EXPECTED_OCCUPIED)
-                        else:
-                            print("No starting point set for LIDAR scan.")
+                        self.show_sensor_data()
                                     
                 elif event.type == self.MOUSEBUTTONDOWN and not pathfind_mode:
                     if event.button == 1:     
@@ -201,18 +208,24 @@ class DrawingBoard:
                         if board_hit:
                             grid_name, cell_ind = board_hit                     
                             self.drawing_grids[grid_name].find_and_change_type_of_cell(self.screen, pos_mouse, OBSTACLE)
+                            if grid_name == MAIN_GRID:
+                                self.show_sensor_data()
 
                     if event.button == 2:
                         board_hit = self.find_board_hit(pos_mouse)
                         if board_hit:
                             grid_name, cell_ind = board_hit 
                             self.drawing_grids[grid_name].find_and_change_type_of_cell(self.screen, pos_mouse, EMPTY)
+                            if grid_name == MAIN_GRID:
+                                self.show_sensor_data()
 
                     if event.button == 3:
                         board_hit = self.find_board_hit(pos_mouse)
                         if board_hit:
                             grid_name, cell_ind = board_hit 
                             self.drawing_grids[grid_name].find_and_change_type_of_cell(self.screen, pos_mouse, STARTING_POINT)
+                            if grid_name == MAIN_GRID:
+                                self.show_sensor_data()
                 
                 elif event.type == self.MOUSEBUTTONUP and not pathfind_mode:
                     button_down=False
@@ -222,6 +235,9 @@ class DrawingBoard:
                     if board_hit:
                         grid_name, cell_ind = board_hit 
                         self.drawing_grids[grid_name].find_and_change_type_of_cell(self.screen, pos_mouse, OBSTACLE)
+                        if grid_name == MAIN_GRID:
+                            if grid_name == MAIN_GRID:
+                                self.show_sensor_data()
                                         
             #sets time of the page updating             
             self.clock.tick(100)
