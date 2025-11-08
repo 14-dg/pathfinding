@@ -14,7 +14,7 @@ class DrawingBoard:
     def __init__(self, **drawing_grids: DrawingGrid) -> None:
         self.drawing_grids = drawing_grids
         
-        self.pf = None
+        self.reset_pathfinder()
         
         self.initialise_canvas()
         
@@ -76,7 +76,7 @@ class DrawingBoard:
         self.find_gen = None
     
     def pathfind_step_by_step(self):
-        if not self.pf:
+        if self.pf is None or self.find_gen is None:
             self.pf = Pathfinder(self.drawing_grids[MAIN_GRID].grid)
             self.find_gen = self.pf.find(A_STAR)
         
