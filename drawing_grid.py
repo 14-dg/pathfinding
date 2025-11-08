@@ -44,7 +44,7 @@ class DrawingGrid:
         height += self.offset_y
         return (width, height)
     
-    def find_cell_hit(self, pos: tuple) -> tuple|None:
+    def find_cell_hit(self, pos: tuple) -> tuple:
         pos_x, pos_y = pos[0], pos[1]
         pos_in_cell_x = (pos_x - self.offset_x) / (self.length_squares + self.margin)
         pos_in_cell_y = (pos_y - self.offset_y) / (self.length_squares + self.margin)

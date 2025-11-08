@@ -63,6 +63,13 @@ class DrawingBoard:
     def create_random_mazes(self):
         for dg in self.drawing_grids.values():
             dg.create_random_maze()
+            
+    def find_board_hit(self, pos: tuple) -> tuple[str, tuple]|None:
+        for grid_name, dg in self.drawing_grids.items():
+            cell_ind = dg.find_cell_hit(pos)
+            if cell_ind[0] != -1 and cell_ind[1] != -1:
+                return grid_name, cell_ind
+        return None
                 
     def reset_pathfinder(self):
         self.pf = None  # Reset Pathfinder for next run
@@ -137,7 +144,10 @@ class DrawingBoard:
                         pathfind_finished = False
                         
                     elif event.key == pygame.K_p and not pathfind_mode:
-                        self.drawing_grids[MAIN_GRID].find_and_change_type_of_cell(self.screen, pos_mouse, TARGET)
+                        board_hit = self.find_board_hit(pos_mouse)
+                        if board_hit:
+                            grid_name, cell_ind = board_hit 
+                            self.drawing_grids[grid_name].find_and_change_type_of_cell(self.screen, pos_mouse, TARGET)
                                 
                     elif event.key == pygame.K_c and not pathfind_mode:
                         self.create_random_mazes()
@@ -169,20 +179,32 @@ class DrawingBoard:
                                     
                 elif event.type == self.MOUSEBUTTONDOWN and not pathfind_mode:
                     if event.button == 1:     
-                        button_down=True                       
-                        self.drawing_grids[MAIN_GRID].find_and_change_type_of_cell(self.screen, pos_mouse, OBSTACLE)
+                        button_down=True   
+                        board_hit = self.find_board_hit(pos_mouse)
+                        if board_hit:
+                            grid_name, cell_ind = board_hit                     
+                            self.drawing_grids[grid_name].find_and_change_type_of_cell(self.screen, pos_mouse, OBSTACLE)
 
                     if event.button == 2:
-                        self.drawing_grids[MAIN_GRID].find_and_change_type_of_cell(self.screen, pos_mouse, EMPTY)
+                        board_hit = self.find_board_hit(pos_mouse)
+                        if board_hit:
+                            grid_name, cell_ind = board_hit 
+                            self.drawing_grids[grid_name].find_and_change_type_of_cell(self.screen, pos_mouse, EMPTY)
 
                     if event.button == 3:
-                        self.drawing_grids[MAIN_GRID].find_and_change_type_of_cell(self.screen, pos_mouse, STARTING_POINT)
+                        board_hit = self.find_board_hit(pos_mouse)
+                        if board_hit:
+                            grid_name, cell_ind = board_hit 
+                            self.drawing_grids[grid_name].find_and_change_type_of_cell(self.screen, pos_mouse, STARTING_POINT)
                 
                 elif event.type == self.MOUSEBUTTONUP and not pathfind_mode:
                     button_down=False
 
                 if event.type == self.MOUSEMOTION and button_down==True and not pathfind_mode:
-                    self.drawing_grids[MAIN_GRID].find_and_change_type_of_cell(self.screen, pos_mouse, OBSTACLE)
+                    board_hit = self.find_board_hit(pos_mouse)
+                    if board_hit:
+                        grid_name, cell_ind = board_hit 
+                        self.drawing_grids[grid_name].find_and_change_type_of_cell(self.screen, pos_mouse, OBSTACLE)
                                         
             #sets time of the page updating             
             self.clock.tick(100)
