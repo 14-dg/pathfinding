@@ -178,6 +178,7 @@ class DrawingBoard:
                         print()
                         
                     elif event.key == pygame.K_s and not pathfind_mode:
+                        self.clear_board(SENSOR_GRID)
                         if self.drawing_grids[MAIN_GRID].grid.starting_points:
                             start_cell = self.drawing_grids[MAIN_GRID].grid.starting_points[0]
                             free_cells, occupied_cells = simulate_lidar_scan(self.drawing_grids[MAIN_GRID].grid, start_cell.get_cell_ind(), 
