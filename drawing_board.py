@@ -56,6 +56,10 @@ class DrawingBoard:
         for dg in self.drawing_grids.values():
             dg.draw_board(self.screen)
             
+    def clear_board(self, grid_name: str):
+        if grid_name in self.drawing_grids:
+            self.drawing_grids[grid_name].clear_board(self.screen)
+            
     def clear_boards(self):
         for dg in self.drawing_grids.values():
             dg.clear_board(self.screen)
@@ -142,6 +146,12 @@ class DrawingBoard:
                         self.reset_pathfinder()                           
                         self.clear_boards()
                         pathfind_finished = False
+                    
+                    elif event.key == pygame.K_c and not pathfind_mode:
+                        board_hit = self.find_board_hit(pos_mouse)
+                        if board_hit:
+                            grid_name, cell_ind = board_hit 
+                            self.clear_board(grid_name)
                         
                     elif event.key == pygame.K_p and not pathfind_mode:
                         board_hit = self.find_board_hit(pos_mouse)
@@ -149,7 +159,7 @@ class DrawingBoard:
                             grid_name, cell_ind = board_hit 
                             self.drawing_grids[grid_name].find_and_change_type_of_cell(self.screen, pos_mouse, TARGET)
                                 
-                    elif event.key == pygame.K_c and not pathfind_mode:
+                    elif event.key == pygame.K_m and not pathfind_mode:
                         self.create_random_mazes()
                         self.reset_pathfinder()                           
                         self.draw_boards()
