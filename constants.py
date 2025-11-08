@@ -3,12 +3,14 @@
 # colors
 BLACK  = (0, 0, 0)
 WHITE  = (255, 255, 255)
-GREEN  = (0, 255, 0)
 RED    = (255, 0, 0)
+GREEN  = (0, 255, 0)
+BLUE   = (0, 0, 255)
 ORANGE = (255, 140, 0)
 ALICEBLUE  = (120, 200, 255)
 BLUEVIOLET = (138, 43, 226)
-DEEPSKYBLUE= (0,191,255)
+DEEPSKYBLUE= (0,95,127)
+
 
 
 
@@ -23,6 +25,9 @@ EMPTY = 'empty'                     # empty cell
 # cell types LIDAR
 EXPECTED_OCCUPIED = 'expected_occupied'     # cell expected to be occupied (for LIDAR)
 EXPECTED_FREE = 'expected_free'             # cell expected to be free (for LIDAR
+# SLAM cell types
+ROVER_POSITION = 'rover_position'           # cell representing the rover's position
+
 
 # colors of cells
 CELL_COLOR = {
@@ -32,8 +37,9 @@ CELL_COLOR = {
     EMPTY: ALICEBLUE,
     SEEN_POINT: BLUEVIOLET,
     WAY_POINT: ORANGE,
-    EXPECTED_OCCUPIED: WHITE,   # dark red
-    EXPECTED_FREE: GREEN,       # dark green
+    EXPECTED_OCCUPIED: WHITE,   
+    EXPECTED_FREE: GREEN,       
+    ROVER_POSITION: BLUE,
 }
 
 # types of grids

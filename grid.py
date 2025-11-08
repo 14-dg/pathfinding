@@ -133,6 +133,10 @@ class Grid:
                 c = self.change_type_of_cell_empty(cell_ind)
                 c = self.change_type_of_cell(cell_ind, EXPECTED_FREE)
                 
+            elif new_type == ROVER_POSITION:
+                c = self.change_type_of_cell_empty(cell_ind)
+                c = self.change_type_of_cell(cell_ind, ROVER_POSITION)
+                
             elif new_type == EMPTY:
                 c = self.change_type_of_cell_empty(cell_ind)
             else:

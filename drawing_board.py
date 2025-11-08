@@ -126,6 +126,7 @@ class DrawingBoard:
                 self.drawing_grids[SENSOR_GRID].change_type_of_cell(self.screen, free_cell, EXPECTED_FREE)
             for occupied_cell in occupied_cells:
                 self.drawing_grids[SENSOR_GRID].change_type_of_cell(self.screen, occupied_cell, EXPECTED_OCCUPIED)
+            self.drawing_grids[SENSOR_GRID].change_type_of_cell(self.screen, start_cell.get_cell_ind(), ROVER_POSITION)
         else:
             # print("No starting point set for LIDAR scan.")
             pass
