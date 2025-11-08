@@ -7,6 +7,7 @@ from cell import Cell
 from grid import Grid
 from pathfinder import Pathfinder
 from drawing_grid import DrawingGrid
+from sensor_data import simulate_lidar_scan
 
 
 class DrawingBoard:
@@ -144,7 +145,7 @@ class DrawingBoard:
                         self.draw_boards()
                         pathfind_finished = False
                                 
-                    elif event.key == pygame.K_s:
+                    elif event.key == pygame.K_i:
                         print("--------------Debugging Info--------------------")
                         print("Starting Points:", self.drawing_grids[MAIN_GRID].grid.starting_points)
                         print("Targets:", self.drawing_grids[MAIN_GRID].grid.targets)
@@ -155,6 +156,16 @@ class DrawingBoard:
                         print("------------------------------------------------")
                         print()
                         print()
+                        
+                    elif event.key == pygame.K_s and not pathfind_mode:
+                        if self.drawing_grids[MAIN_GRID].grid.starting_points:
+                            start_cell = self.drawing_grids[MAIN_GRID].grid.starting_points[0]
+                            free_cells, occupied_cells = simulate_lidar_scan(self.drawing_grids[MAIN_GRID].grid, start_cell.get_cell_ind())
+                            print("LIDAR Scan from", start_cell.get_cell_ind())
+                            print("Free cells detected by LIDAR: ", free_cells)
+                            print("Occupied cells detected by LIDAR: ", occupied_cells)
+                        else:
+                            print("No starting point set for LIDAR scan.")
                                     
                 elif event.type == self.MOUSEBUTTONDOWN and not pathfind_mode:
                     if event.button == 1:     
