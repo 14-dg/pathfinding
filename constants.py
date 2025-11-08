@@ -32,6 +32,7 @@ CELL_COLOR = {
 
 # types of grids
 MAIN_GRID = "MAIN_GRID"
+SENSOR_GRID = "SENSOR_GRID"
 SECONDARY_GRID = "SECONDARY_GRID"
 
 # types of pathfining algorithms

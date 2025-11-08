@@ -12,7 +12,7 @@ from drawing_board import DrawingBoard
 def main():
     g1 = Grid(80, 80, grid_name=MAIN_GRID)
     g2 = Grid(80, 80, grid_name=SECONDARY_GRID)
-    g3 = Grid(80, 80, grid_name=SECONDARY_GRID)
+    g3 = Grid(80, 80, grid_name=SENSOR_GRID)
     g4 = Grid(80, 80, grid_name=SECONDARY_GRID)
         
     dg1 = DrawingGrid(g1, 5, 1, 0, 0)
@@ -20,7 +20,7 @@ def main():
     dg3 = DrawingGrid(g3, 5, 1, 0, dg1.get_screen_dimensions()[1]+10)
     dg4 = DrawingGrid(g4, 5, 1, dg3.get_screen_dimensions()[0]+10, dg1.get_screen_dimensions()[1]+10)
     
-    db = DrawingBoard(MAIN_GRID=dg1, SECONDARY_GRID=dg2, THIRD_GRID=dg3, FOURTH_GRID=dg4)
+    db = DrawingBoard(MAIN_GRID=dg1, SECONDARY_GRID=dg2, SENSOR_GRID=dg3, FOURTH_GRID=dg4)
     db.mainloop()
 
 if __name__ == "__main__":
