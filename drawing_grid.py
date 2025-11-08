@@ -81,15 +81,19 @@ class DrawingGrid:
         self.grid.clear_board()
         self.draw_board(screen)
         
+    def change_type_of_cell(self, screen, cell_ind: tuple, cell_type: str) -> None:
+        cell_list = self.grid.find_and_change_type_of_cell(cell_ind, cell_type)
+        if cell_list:
+            for cell in cell_list:
+                pos_cell = self.get_pos_of_cell(cell.get_cell_ind())
+                if pos_cell:
+                    self.draw_cell(screen, cell, pos_cell[0], pos_cell[1], self.length_squares, self.length_squares)
+        return None
+        
     def find_and_change_type_of_cell(self, screen, pos: tuple, cell_type: str) -> None:
         cell_ind = self.find_cell_hit(pos)
         if cell_ind:
-            cell_list = self.grid.find_and_change_type_of_cell(cell_ind, cell_type)
-            if cell_list:
-                for cell in cell_list:
-                    pos_cell = self.get_pos_of_cell(cell.get_cell_ind())
-                    if pos_cell:
-                        self.draw_cell(screen, cell, pos_cell[0], pos_cell[1], self.length_squares, self.length_squares)
+            return self.change_type_of_cell(screen, cell_ind, cell_type)
         return None
                 
     def create_random_maze(self):

@@ -13,12 +13,16 @@ DEEPSKYBLUE= (0,191,255)
 
 
 # types of cells
+# cell types Pathfinding
 TARGET = 'target'                   # target for pathfinding
 OBSTACLE = 'obstacle'               # obstacle for pathfinding
 STARTING_POINT = 'starting_point'   # starting point for pathfinding
 SEEN_POINT = 'seen_point'           # a temporary seen point cell during pathfinding
 WAY_POINT = 'way_point'             # the cell that is part of the final path
 EMPTY = 'empty'                     # empty cell
+# cell types LIDAR
+EXPECTED_OCCUPIED = 'expected_occupied'     # cell expected to be occupied (for LIDAR)
+EXPECTED_FREE = 'expected_free'             # cell expected to be free (for LIDAR
 
 # colors of cells
 CELL_COLOR = {
@@ -27,7 +31,9 @@ CELL_COLOR = {
     STARTING_POINT: GREEN,
     EMPTY: ALICEBLUE,
     SEEN_POINT: BLUEVIOLET,
-    WAY_POINT: ORANGE
+    WAY_POINT: ORANGE,
+    EXPECTED_OCCUPIED: WHITE,   # dark red
+    EXPECTED_FREE: GREEN,       # dark green
 }
 
 # types of grids
