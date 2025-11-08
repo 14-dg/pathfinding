@@ -135,7 +135,7 @@ class DrawingBoard:
         
         self.draw_boards()
         
-        button_down = False
+        left_click_button_down = False
         running = True
         pathfind_mode = False
         pathfind_finished = False
@@ -204,7 +204,7 @@ class DrawingBoard:
                                     
                 elif event.type == self.MOUSEBUTTONDOWN and not pathfind_mode:
                     if event.button == 1:     
-                        button_down=True   
+                        left_click_button_down=True   
                         board_hit = self.find_board_hit(pos_mouse)
                         if board_hit:
                             grid_name, cell_ind = board_hit                     
@@ -229,9 +229,9 @@ class DrawingBoard:
                                 self.show_sensor_data()
                 
                 elif event.type == self.MOUSEBUTTONUP and not pathfind_mode:
-                    button_down=False
+                    left_click_button_down=False
 
-                if event.type == self.MOUSEMOTION and button_down==True and not pathfind_mode:
+                if event.type == self.MOUSEMOTION and left_click_button_down==True and not pathfind_mode:
                     board_hit = self.find_board_hit(pos_mouse)
                     if board_hit:
                         grid_name, cell_ind = board_hit 
@@ -239,6 +239,7 @@ class DrawingBoard:
                         if grid_name == MAIN_GRID:
                             if grid_name == MAIN_GRID:
                                 self.show_sensor_data()
+                
                                         
             #sets time of the page updating             
             self.clock.tick(100)
