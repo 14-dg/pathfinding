@@ -77,9 +77,8 @@ class DrawingGrid:
             for column in row:
                 self.draw_cell(screen, *column)
                 
-    def clear_board(self, screen):
+    def clear_board(self):
         self.grid.clear_board()
-        self.draw_board(screen)
         
     def change_type_of_cell(self, screen, cell_ind: tuple, cell_type: str) -> None:
         cell_list = self.grid.find_and_change_type_of_cell(cell_ind, cell_type)
@@ -109,7 +108,6 @@ class DrawingGrid:
         starting_point_cell = self.grid.grid[int(0.9 * self.grid.height)][int(0.9 * self.grid.width)]
         self.grid.find_and_change_type_of_cell(target_cell.get_cell_ind(), TARGET)
         self.grid.find_and_change_type_of_cell(starting_point_cell.get_cell_ind(), STARTING_POINT)
-        
         
 if __name__ == "__main__":
     g = Grid(10, 10)

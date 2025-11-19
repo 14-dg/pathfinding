@@ -58,15 +58,18 @@ class DrawingBoard:
             
     def clear_board(self, grid_name: str):
         if grid_name in self.drawing_grids:
-            self.drawing_grids[grid_name].clear_board(self.screen)
+            self.drawing_grids[grid_name].clear_board()
+            self.drawing_grids[grid_name].draw_board(self.screen)
             
     def clear_boards(self):
         for dg in self.drawing_grids.values():
-            dg.clear_board(self.screen)
+            dg.clear_board()
+            dg.draw_board(self.screen)
             
-    def create_random_mazes(self):
-        for dg in self.drawing_grids.values():
-            dg.create_random_maze()
+    def create_random_maze(self, grid_name: str):
+        if grid_name in self.drawing_grids:
+            self.drawing_grids[grid_name].create_random_maze()
+            self.drawing_grids[grid_name].draw_board(self.screen)
             
     def find_board_hit(self, pos: tuple) -> tuple[str, tuple]|None:
         for grid_name, dg in self.drawing_grids.items():
@@ -182,10 +185,17 @@ class DrawingBoard:
                             self.drawing_grids[grid_name].find_and_change_type_of_cell(self.screen, pos_mouse, TARGET)
                                 
                     elif event.key == pygame.K_m and not pathfind_mode:
-                        self.create_random_mazes()
-                        self.reset_pathfinder()                           
-                        self.draw_boards()
-                        pathfind_finished = False
+                        board_hit = self.find_board_hit(pos_mouse)
+                        if board_hit:
+                            grid_name, cell_ind = board_hit 
+                            self.create_random_maze(grid_name)
+                            self.reset_pathfinder()                           
+                            self.draw_boards()
+                            
+                            if grid_name == MAIN_GRID:
+                                self.show_sensor_data()
+                                
+                            pathfind_finished = False
                                 
                     elif event.key == pygame.K_i:
                         print("--------------Debugging Info--------------------")
