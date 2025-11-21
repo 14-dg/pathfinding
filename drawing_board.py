@@ -73,7 +73,7 @@ class DrawingBoard:
             
     def find_board_hit(self, pos: tuple) -> tuple[str, tuple]|None:
         for grid_name, dg in self.drawing_grids.items():
-            if grid_name not in [MAIN_GRID, ROVER_GRID]:
+            if grid_name not in [MAIN_GRID]:
                 continue
             
             cell_ind = dg.find_cell_hit(pos)
