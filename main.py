@@ -35,6 +35,7 @@ if __name__ == "__main__":
     print("'enter' key:     run pathfinder")
     print("'j' key:         stop pathfinder and current path")
     print("'s' key:         show LIDAR scan from rover position")
+    print("'r' key:         reset pathfinder and clear pathfinding types")
     print("'i' key:         show debug info")
     print("Note: Pathfinder runs on ROVER_PATHFINDER_GRID but shows data from MAIN_GRID and ROVER_GRID")
     main()

@@ -75,8 +75,14 @@ class DrawingGrid:
             for column in row:
                 self.draw_cell(screen, *column)
                 
-    def clear_board(self):
+    def clear_board(self, screen):
         self.grid.clear_board()
+        self.draw_board(screen)
+        
+    def clear_board_of_pathfinding_types(self, screen):
+        removed_cells = self.grid.clear_board_of_pathfinding_types()
+        for r_c in removed_cells:
+            self.draw_cell(screen, *self.draw_grid[r_c.row_ind][r_c.column_ind])
         
     def clear_current_path(self, screen):
         removed_cells = self.grid.clear_current_path_points()

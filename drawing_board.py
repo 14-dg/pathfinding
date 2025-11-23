@@ -14,7 +14,7 @@ class DrawingBoard:
     def __init__(self, **drawing_grids: DrawingGrid) -> None:
         self.drawing_grids = drawing_grids
         
-        self.reset_pathfinder()
+        self.reset_pathfinder_vars()
         
         self.initialise_canvas()
         
@@ -58,13 +58,11 @@ class DrawingBoard:
             
     def clear_board(self, grid_name: str):
         if grid_name in self.drawing_grids:
-            self.drawing_grids[grid_name].clear_board()
-            self.drawing_grids[grid_name].draw_board(self.screen)
+            self.drawing_grids[grid_name].clear_board(self.screen)
             
     def clear_boards(self):
         for dg in self.drawing_grids.values():
-            dg.clear_board()
-            dg.draw_board(self.screen)
+            self.clear_board(dg.grid.grid_name)
             
     def create_random_maze(self, grid_name: str):
         if grid_name in self.drawing_grids:
@@ -81,9 +79,13 @@ class DrawingBoard:
                 return grid_name, cell_ind
         return None
                 
-    def reset_pathfinder(self):
+    def reset_pathfinder_vars(self):
         self.pf = None  # Reset Pathfinder for next run
         self.find_gen = None
+        
+    def reset_pathfinder(self):
+        self.reset_pathfinder_vars()
+        self.drawing_grids[ROVER_GRID].clear_board_of_pathfinding_types(self.screen)
     
     def pathfind_step_by_step(self, show_current_path: bool = False):
         if self.pf is None or self.find_gen is None:
@@ -109,12 +111,12 @@ class DrawingBoard:
                 return False
         except StopIteration:
             cells = None   
-            self.reset_pathfinder()
+            self.reset_pathfinder_vars()
 
             return True
         except Exception as e:
             print("Error during pathfinding step:", e)
-            self.reset_pathfinder()
+            self.reset_pathfinder_vars()
             return True
         
     def show_sensor_data(self, start_point_cell: Cell|None = None) -> None:
@@ -168,7 +170,7 @@ class DrawingBoard:
                         print("Pathfinding mode:", pathfind_mode)
 
                     elif event.key == pygame.K_SPACE and not pathfind_mode: 
-                        self.reset_pathfinder()                           
+                        self.reset_pathfinder_vars()                           
                         self.clear_boards()
                         pathfind_finished = False
                     
@@ -190,7 +192,7 @@ class DrawingBoard:
                         if board_hit:
                             grid_name, cell_ind = board_hit 
                             self.create_random_maze(grid_name)
-                            self.reset_pathfinder()                           
+                            self.reset_pathfinder_vars()                           
                             self.draw_boards()
                             
                             if grid_name == MAIN_GRID:
@@ -222,6 +224,9 @@ class DrawingBoard:
                     elif event.key == pygame.K_s and not pathfind_mode:
                         self.clear_board(SENSOR_GRID)
                         self.show_sensor_data()
+                        
+                    elif event.key == pygame.K_r and not pathfind_mode:
+                        self.reset_pathfinder()
                                     
                 elif event.type == self.MOUSEBUTTONDOWN and not pathfind_mode:
                     if event.button == 1:     

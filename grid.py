@@ -180,6 +180,21 @@ class Grid:
         self.seen_points = []
         self.current_path_points = []
         self.way_points = []
+        
+    def clear_board_of_pathfinding_types(self) -> List[Cell]:
+        removed_cells = []
+        for x in self.grid:
+            for c in x:
+                if c.cell_type in [SEEN_POINT, CURRENT_PATH_CELL, WAY_POINT]:
+                    if c not in self.starting_points:
+                        removed_cells.append(c)
+                        self.change_type_of_cell_empty(c.get_cell_ind())
+                        
+        self.seen_points = []
+        self.current_path_points = []
+        self.way_points = []
+        return removed_cells
+        
                     
     def get_adjacent_cells(self, cell: Cell) -> List[Cell]|None:
         adjacent_cells = []
