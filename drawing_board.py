@@ -97,6 +97,7 @@ class DrawingBoard:
                 if changed_cells:
                     for c_c in changed_cells:
                         self.drawing_grids[MAIN_GRID].update_cell_on_screen(self.screen, c_c)
+                        self.show_sensor_data(start_point_cell=current_cell)
 
                     if show_current_path:
                         self.drawing_grids[MAIN_GRID].clear_current_path(self.screen)
@@ -116,14 +117,18 @@ class DrawingBoard:
             self.reset_pathfinder()
             return True
         
-    def show_sensor_data(self):
-        self.clear_board(SENSOR_GRID)
-        if self.drawing_grids[MAIN_GRID].grid.starting_points:
+    def show_sensor_data(self, start_point_cell: Cell|None = None) -> None:
+        # self.clear_board(SENSOR_GRID)
+        if start_point_cell == None and self.drawing_grids[MAIN_GRID].grid.starting_points:
             start_cell = self.drawing_grids[MAIN_GRID].grid.starting_points[0]
             
             self.drawing_grids[SENSOR_GRID].show_sensor_data(self.screen,
                                                              self.drawing_grids[MAIN_GRID].grid,
                                                              start_cell)
+        elif start_point_cell:
+            self.drawing_grids[SENSOR_GRID].show_sensor_data(self.screen,
+                                                             self.drawing_grids[MAIN_GRID].grid,
+                                                             start_point_cell)
         else:
             # print("No starting point set for LIDAR scan.")
             pass
@@ -188,6 +193,7 @@ class DrawingBoard:
                             self.draw_boards()
                             
                             if grid_name == MAIN_GRID:
+                                self.clear_board(SENSOR_GRID)
                                 self.show_sensor_data()
                                 
                             pathfind_finished = False
@@ -212,6 +218,7 @@ class DrawingBoard:
                             pathfind_finished = True
                         
                     elif event.key == pygame.K_s and not pathfind_mode:
+                        self.clear_board(SENSOR_GRID)
                         self.show_sensor_data()
                                     
                 elif event.type == self.MOUSEBUTTONDOWN and not pathfind_mode:
@@ -222,6 +229,7 @@ class DrawingBoard:
                             grid_name, cell_ind = board_hit                     
                             self.drawing_grids[grid_name].find_and_change_type_of_cell(self.screen, pos_mouse, OBSTACLE)
                             if grid_name == MAIN_GRID:
+                                self.clear_board(SENSOR_GRID)
                                 self.show_sensor_data()
 
                     if event.button == 2:
@@ -230,6 +238,7 @@ class DrawingBoard:
                             grid_name, cell_ind = board_hit 
                             self.drawing_grids[grid_name].find_and_change_type_of_cell(self.screen, pos_mouse, EMPTY)
                             if grid_name == MAIN_GRID:
+                                self.clear_board(SENSOR_GRID)
                                 self.show_sensor_data()
 
                     if event.button == 3:
@@ -238,6 +247,7 @@ class DrawingBoard:
                             grid_name, cell_ind = board_hit 
                             self.drawing_grids[grid_name].find_and_change_type_of_cell(self.screen, pos_mouse, STARTING_POINT)
                             if grid_name == MAIN_GRID:
+                                self.clear_board(SENSOR_GRID)
                                 self.show_sensor_data()
                 
                 elif event.type == self.MOUSEBUTTONUP and not pathfind_mode:
@@ -250,6 +260,7 @@ class DrawingBoard:
                         self.drawing_grids[grid_name].find_and_change_type_of_cell(self.screen, pos_mouse, OBSTACLE)
                         if grid_name == MAIN_GRID:
                             if grid_name == MAIN_GRID:
+                                self.clear_board(SENSOR_GRID)
                                 self.show_sensor_data()
                 
                                         
