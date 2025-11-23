@@ -5,9 +5,9 @@ from typing import Sequence
 from constants import *
 from cell import Cell
 from grid import Grid
+
 from pathfinder import Pathfinder
 from drawing_grid import DrawingGrid
-from sensor_data import simulate_lidar_scan
 
 
 class DrawingBoard:
@@ -80,20 +80,6 @@ class DrawingBoard:
             if cell_ind[0] != -1 and cell_ind[1] != -1:
                 return grid_name, cell_ind
         return None
-    
-    def clear_current_path(self, grid_name: str):
-        removed_cells = self.drawing_grids[grid_name].grid.clear_current_path_points()
-        for r_c in removed_cells:
-            # print("removed path cell:", r_c)
-            self.drawing_grids[grid_name].grid.find_and_change_type_of_cell(r_c.get_cell_ind(), SEEN_POINT)
-            pos_cell = self.drawing_grids[grid_name].get_pos_of_cell(r_c.get_cell_ind())
-            if pos_cell:
-                self.drawing_grids[grid_name].draw_cell(self.screen, r_c,
-                                                    pos_cell[0], pos_cell[1],
-                                                    self.drawing_grids[grid_name].length_squares,
-                                                    self.drawing_grids[grid_name].length_squares)
-            else:
-                print("Could not get position of cell in previous path:", r_c, "in pathfinder step")
                 
     def reset_pathfinder(self):
         self.pf = None  # Reset Pathfinder for next run
@@ -110,30 +96,14 @@ class DrawingBoard:
                 
                 if changed_cells:
                     for c_c in changed_cells:
-                        pos_cell = self.drawing_grids[MAIN_GRID].get_pos_of_cell(c_c.get_cell_ind())
-                        if pos_cell:
-                            self.drawing_grids[MAIN_GRID].draw_cell(self.screen, c_c,
-                                                                 pos_cell[0], pos_cell[1],
-                                                                 self.drawing_grids[MAIN_GRID].length_squares,
-                                                                 self.drawing_grids[MAIN_GRID].length_squares)
-                        else:
-                            print("Could not get position of cell:", c_c, "in pathfinder step")
-                    
+                        self.drawing_grids[MAIN_GRID].update_cell_on_screen(self.screen, c_c)
+
                     if show_current_path:
-                        self.clear_current_path(MAIN_GRID)
+                        self.drawing_grids[MAIN_GRID].clear_current_path(self.screen)
                                 
                         current_cell_path = self.pf.get_parents(current_cell) if current_cell else []
                         for c_p in current_cell_path:
-                            # print("current path cell:", c_p)
-                            self.drawing_grids[MAIN_GRID].grid.find_and_change_type_of_cell(c_p.get_cell_ind(), CURRENT_PATH_CELL)
-                            pos_cell = self.drawing_grids[MAIN_GRID].get_pos_of_cell(c_p.get_cell_ind())
-                            if pos_cell:
-                                self.drawing_grids[MAIN_GRID].draw_cell(self.screen, c_p,
-                                                                    pos_cell[0], pos_cell[1],
-                                                                    self.drawing_grids[MAIN_GRID].length_squares,
-                                                                    self.drawing_grids[MAIN_GRID].length_squares)
-                            else:
-                                print("Could not get position of cell in current path:", c_p, "in pathfinder step")
+                            self.drawing_grids[MAIN_GRID].change_type_of_cell(self.screen, c_p.get_cell_ind(), CURRENT_PATH_CELL)
                                 
                 return False
         except StopIteration:
@@ -150,17 +120,10 @@ class DrawingBoard:
         self.clear_board(SENSOR_GRID)
         if self.drawing_grids[MAIN_GRID].grid.starting_points:
             start_cell = self.drawing_grids[MAIN_GRID].grid.starting_points[0]
-            free_cells, occupied_cells = simulate_lidar_scan(self.drawing_grids[MAIN_GRID].grid, start_cell.get_cell_ind(), 
-                                                                scan_range=20, points_per_rotation=180)
-            # print("LIDAR Scan from", start_cell.get_cell_ind())
-            # print("Free cells detected by LIDAR: ", free_cells)
-            # print("Occupied cells detected by LIDAR: ", occupied_cells)
             
-            for free_cell in free_cells:
-                self.drawing_grids[SENSOR_GRID].change_type_of_cell(self.screen, free_cell, EXPECTED_FREE)
-            for occupied_cell in occupied_cells:
-                self.drawing_grids[SENSOR_GRID].change_type_of_cell(self.screen, occupied_cell, EXPECTED_OCCUPIED)
-            self.drawing_grids[SENSOR_GRID].change_type_of_cell(self.screen, start_cell.get_cell_ind(), ROVER_POSITION)
+            self.drawing_grids[SENSOR_GRID].show_sensor_data(self.screen,
+                                                             self.drawing_grids[MAIN_GRID].grid,
+                                                             start_cell)
         else:
             # print("No starting point set for LIDAR scan.")
             pass
@@ -242,7 +205,7 @@ class DrawingBoard:
                         print()
                         
                     elif event.key == pygame.K_j and pathfind_mode and not pathfind_finished:
-                        self.clear_current_path(MAIN_GRID)
+                        self.drawing_grids[MAIN_GRID].clear_current_path(self.screen)
                         show_current_path = not show_current_path
                         if self.pathfind_step_by_step(show_current_path=show_current_path):
                             print("pathfinder finished")

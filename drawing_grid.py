@@ -7,6 +7,8 @@ from cell import Cell
 from grid import Grid
 from constants import *
 
+from sensor_data import simulate_lidar_scan
+
 
 class DrawingGrid:
     def __init__(self, grid: Grid, length_square: int, margin: int, offset_x: int, offset_y: int) -> None:
@@ -58,19 +60,15 @@ class DrawingGrid:
             cell_row = -1
         return (cell_row, cell_column)
     
-    def get_pos_of_cell(self, cell_ind: tuple) -> tuple|None:
-        cell_row, cell_column = cell_ind[0], cell_ind[1]
-        if 0 > cell_column or cell_column >= self.grid.width:
-            return None
-        if 0 > cell_row or cell_row >= self.grid.height:
-            return None
-        
-        x = self.offset_x + cell_column * (self.length_squares + self.margin)
-        y = self.offset_y + cell_row * (self.length_squares + self.margin)
-        return (x, y)
-    
     def draw_cell(self, screen, c: Cell, x, y, w, h) -> None:
         pygame.draw.rect(screen , c.color, (x, y, w, h))
+    
+    def update_cell_on_screen(self, screen, cell: Cell) -> None:
+        cell_ind = cell.get_cell_ind()
+        if cell_ind:
+            self.draw_cell(screen, *self.draw_grid[cell_ind[0]][cell_ind[1]])
+        else:
+            print("Could not get position of cell:", cell)
     
     def draw_board(self, screen):
         for row in self.draw_grid:
@@ -80,13 +78,16 @@ class DrawingGrid:
     def clear_board(self):
         self.grid.clear_board()
         
+    def clear_current_path(self, screen):
+        removed_cells = self.grid.clear_current_path_points()
+        for r_c in removed_cells:
+            self.change_type_of_cell(screen, r_c.get_cell_ind(), SEEN_POINT)
+        
     def change_type_of_cell(self, screen, cell_ind: tuple, cell_type: str) -> None:
         cell_list = self.grid.find_and_change_type_of_cell(cell_ind, cell_type)
         if cell_list:
             for cell in cell_list:
-                pos_cell = self.get_pos_of_cell(cell.get_cell_ind())
-                if pos_cell:
-                    self.draw_cell(screen, cell, pos_cell[0], pos_cell[1], self.length_squares, self.length_squares)
+                self.draw_cell(screen, *self.draw_grid[cell.row_ind][cell.column_ind])
         return None
         
     def find_and_change_type_of_cell(self, screen, pos: tuple, cell_type: str) -> None:
@@ -108,6 +109,19 @@ class DrawingGrid:
         starting_point_cell = self.grid.grid[int(0.9 * self.grid.height)][int(0.9 * self.grid.width)]
         self.grid.find_and_change_type_of_cell(target_cell.get_cell_ind(), TARGET)
         self.grid.find_and_change_type_of_cell(starting_point_cell.get_cell_ind(), STARTING_POINT)
+        
+    def show_sensor_data(self, screen, grid, start_cell: Cell) -> None:
+        free_cells, occupied_cells = simulate_lidar_scan(grid, start_cell.get_cell_ind(), 
+                                                            scan_range=20, points_per_rotation=180)
+        # print("LIDAR Scan from", start_cell.get_cell_ind())
+        # print("Free cells detected by LIDAR: ", free_cells)
+        # print("Occupied cells detected by LIDAR: ", occupied_cells)
+        
+        for free_cell in free_cells:
+            self.change_type_of_cell(screen, free_cell, EXPECTED_FREE)
+        for occupied_cell in occupied_cells:
+            self.change_type_of_cell(screen, occupied_cell, EXPECTED_OCCUPIED)
+        self.change_type_of_cell(screen, start_cell.get_cell_ind(), ROVER_POSITION)
         
 if __name__ == "__main__":
     g = Grid(10, 10)
