@@ -8,7 +8,9 @@ from grid import Grid
         
 import math
 
-def simulate_lidar_scan(grid: Grid, position: tuple, scan_range: int = 10, points_per_rotation: int = 360):
+def simulate_lidar_scan(grid: Grid, position: tuple, scan_range: int = 10, 
+                        points_per_rotation: int = 360
+                        ) -> tuple[set[tuple[int, int]], set[tuple[int, int]]]:
     """
     Simulates a 360° LIDAR scan.
     Returns:
@@ -34,6 +36,8 @@ def simulate_lidar_scan(grid: Grid, position: tuple, scan_range: int = 10, point
                 if cell.cell_type == OBSTACLE:
                     occupied_cells.add((scan_row, scan_col))
                     break  # hit obstacle → stop this ray
+                elif cell.cell_type in [SEEN_POINT, CURRENT_PATH_CELL, WAY_POINT]:
+                    continue  # ignore these special cells
                 else:
                     free_cells.add((scan_row, scan_col))
             else:

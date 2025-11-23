@@ -8,6 +8,8 @@ from cell import Cell
 from grid import Grid
 from constants import *
 
+from sensor_data import simulate_lidar_scan
+
 class Node:
     def __init__(self, cell: Cell, parent: Node|None = None, 
                  dist:float = float("inf")) -> None:
@@ -90,6 +92,9 @@ class Pathfinder:
                 break
             
             adjacent_cells = self.grid.get_adjacent_non_obstacle_cells(current_cell)
+            # adjacent_cells_inds = simulate_lidar_scan(self.grid, current_cell.get_cell_ind(), scan_range=3, points_per_rotation=90)[0]
+            # adjacent_cells = [self.grid.grid[r][c] for r, c in adjacent_cells_inds]
+            
             if adjacent_cells is None:
                 continue
             
