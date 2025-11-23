@@ -32,6 +32,7 @@ class Pathfinder:
 
     def dijkstra(self):
         changed_cells = set()
+        current_cell = None
         
         for sp in self.grid.seen_points:
             self.G[sp].dist = 0.0
@@ -66,12 +67,13 @@ class Pathfinder:
                     changed_cells.add(adjacent_cell)
                          
             if changed_cells:
-                yield changed_cells
+                yield changed_cells, current_cell
                 changed_cells = set()
-        return changed_cells
+        return changed_cells, current_cell
     
     def a_star(self):
         changed_cells = set()
+        current_cell = None
         
         for sp in self.grid.seen_points:
             self.G[sp].dist = 0.0
@@ -109,9 +111,9 @@ class Pathfinder:
                     changed_cells.add(adjacent_cell)
                          
             if changed_cells:
-                yield changed_cells
+                yield changed_cells, current_cell
                 changed_cells = set()
-        return changed_cells
+        return changed_cells, current_cell
     
     def shortest_path(self, algorithm: str, start_cell: Cell|None = None, end_cell: Cell|None = None, ):
         if algorithm == DIJKSTRA:
@@ -123,8 +125,8 @@ class Pathfinder:
             
         while pathfinding_algorithm_gen:
             try:
-                changed_cells = next(pathfinding_algorithm_gen)
-                yield changed_cells
+                changed_cells, current_cell = next(pathfinding_algorithm_gen)
+                yield changed_cells, current_cell
                 changed_cells = set()
             except StopIteration:
                 break
@@ -147,22 +149,35 @@ class Pathfinder:
                 current_cell = None
             
             if changed_cells:    
-                yield changed_cells
+                yield changed_cells, current_cell
                 changed_cells = set()
             
-        return changed_cells
+        return changed_cells, current_cell
+    
+    def get_parents(self, cell: Cell) -> list[Cell]:
+        parents = []
+        current_cell = cell
+        while current_cell:
+            parents.append(current_cell)
+            parent_node = self.G[current_cell].parent
+            if parent_node:
+                current_cell = parent_node.cell
+            else:
+                break
+        return parents[::-1]  # reverse to get from start to end
 
     def find(self, algorithm:str):
         if self.grid.seen_points == []:
             self.grid.seen_points = self.grid.starting_points.copy()
         shortest_path_gen = self.shortest_path(algorithm, self.grid.starting_points[0], self.grid.targets[0])
         changed_cells = set()
+        current_cell = None
         
         while shortest_path_gen:
             try:
-                changed_cells = next(shortest_path_gen) 
-                if changed_cells:
-                    yield changed_cells
+                changed_cells, current_cell = next(shortest_path_gen) 
+                if changed_cells and current_cell:
+                    yield changed_cells, current_cell
                     changed_cells = set()
             except StopIteration:
                 break 

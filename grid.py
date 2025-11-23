@@ -13,6 +13,7 @@ class Grid:
         self.starting_points = []
         
         self.seen_points = []
+        self.current_path_points = []
         self.way_points = []
          
         self.width = width
@@ -77,9 +78,17 @@ class Grid:
         if self.is_cell_unoccupied(cell_ind):
             self.seen_points.append(self.grid[cell_ind[0]][cell_ind[1]])
             return self.change_type_of_cell(cell_ind, SEEN_POINT)
+        
+    def change_type_of_cell_current_path_points(self, cell_ind: tuple) -> Cell|None:
+        if self.is_cell_unoccupied(cell_ind):
+            self.current_path_points.append(self.grid[cell_ind[0]][cell_ind[1]])
+            return self.change_type_of_cell(cell_ind, CURRENT_PATH_CELL)
     
     def change_type_of_cell_way_point(self, cell_ind: tuple) -> Cell|None:
         if self.is_cell_unoccupied(cell_ind):
+            cell = self.grid[cell_ind[0]][cell_ind[1]]
+            if cell in self.current_path_points:
+                self.current_path_points.remove(cell)
             self.way_points.append(self.grid[cell_ind[0]][cell_ind[1]])
             return self.change_type_of_cell(cell_ind, WAY_POINT)
         
@@ -98,6 +107,8 @@ class Grid:
             self.starting_points.remove(cell)
         if cell in self.seen_points:
             self.seen_points.remove(cell)
+        if cell in self.current_path_points:
+            self.current_path_points.remove(cell)
         if cell in self.way_points:
             self.way_points.remove(cell)
         return self.change_type_of_cell(cell_ind, EMPTY)
@@ -117,6 +128,9 @@ class Grid:
             
             elif new_type == SEEN_POINT:
                 c = self.change_type_of_cell_seen_point(cell_ind)
+            
+            elif new_type == CURRENT_PATH_CELL:
+                c = self.change_type_of_cell_current_path_points(cell_ind)
                 
             elif new_type == WAY_POINT:
                 c = self.change_type_of_cell_way_point(cell_ind)
@@ -145,6 +159,14 @@ class Grid:
             return [c]
         return None
     
+    def clear_current_path_points(self) -> list[Cell]:
+        temp = self.current_path_points.copy()
+        for cell in self.current_path_points:
+            self.change_type_of_cell_empty(cell.get_cell_ind())
+            
+        self.current_path_points = []
+        return temp
+    
     def clear_board(self) -> None:
         for ind_y, row in enumerate(self.grid):
             for ind_x, c in enumerate(row):
@@ -156,6 +178,7 @@ class Grid:
         self.starting_points = []
         
         self.seen_points = []
+        self.current_path_points = []
         self.way_points = []
                     
     def get_adjacent_cells(self, cell: Cell) -> List[Cell]|None:

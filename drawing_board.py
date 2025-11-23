@@ -80,30 +80,61 @@ class DrawingBoard:
             if cell_ind[0] != -1 and cell_ind[1] != -1:
                 return grid_name, cell_ind
         return None
+    
+    def clear_current_path(self, grid_name: str):
+        removed_cells = self.drawing_grids[grid_name].grid.clear_current_path_points()
+        for r_c in removed_cells:
+            # print("removed path cell:", r_c)
+            self.drawing_grids[grid_name].grid.find_and_change_type_of_cell(r_c.get_cell_ind(), SEEN_POINT)
+            pos_cell = self.drawing_grids[grid_name].get_pos_of_cell(r_c.get_cell_ind())
+            if pos_cell:
+                self.drawing_grids[grid_name].draw_cell(self.screen, r_c,
+                                                    pos_cell[0], pos_cell[1],
+                                                    self.drawing_grids[grid_name].length_squares,
+                                                    self.drawing_grids[grid_name].length_squares)
+            else:
+                print("Could not get position of cell in previous path:", r_c, "in pathfinder step")
                 
     def reset_pathfinder(self):
         self.pf = None  # Reset Pathfinder for next run
         self.find_gen = None
     
-    def pathfind_step_by_step(self):
+    def pathfind_step_by_step(self, show_current_path: bool = False):
         if self.pf is None or self.find_gen is None:
             self.pf = Pathfinder(self.drawing_grids[MAIN_GRID].grid)
             self.find_gen = self.pf.find(A_STAR)
         
-        
         try:
             if self.find_gen:
-                cells = next(self.find_gen)
-                if cells:
-                    for c in cells:
-                        pos_cell = self.drawing_grids[MAIN_GRID].get_pos_of_cell(c.get_cell_ind())
+                changed_cells, current_cell = next(self.find_gen)
+                
+                if changed_cells:
+                    for c_c in changed_cells:
+                        pos_cell = self.drawing_grids[MAIN_GRID].get_pos_of_cell(c_c.get_cell_ind())
                         if pos_cell:
-                            self.drawing_grids[MAIN_GRID].draw_cell(self.screen, c,
+                            self.drawing_grids[MAIN_GRID].draw_cell(self.screen, c_c,
                                                                  pos_cell[0], pos_cell[1],
                                                                  self.drawing_grids[MAIN_GRID].length_squares,
                                                                  self.drawing_grids[MAIN_GRID].length_squares)
                         else:
-                            print("Could not get position of cell:", c, "in pathfinder step")
+                            print("Could not get position of cell:", c_c, "in pathfinder step")
+                    
+                    if show_current_path:
+                        self.clear_current_path(MAIN_GRID)
+                                
+                        current_cell_path = self.pf.get_parents(current_cell) if current_cell else []
+                        for c_p in current_cell_path:
+                            # print("current path cell:", c_p)
+                            self.drawing_grids[MAIN_GRID].grid.find_and_change_type_of_cell(c_p.get_cell_ind(), CURRENT_PATH_CELL)
+                            pos_cell = self.drawing_grids[MAIN_GRID].get_pos_of_cell(c_p.get_cell_ind())
+                            if pos_cell:
+                                self.drawing_grids[MAIN_GRID].draw_cell(self.screen, c_p,
+                                                                    pos_cell[0], pos_cell[1],
+                                                                    self.drawing_grids[MAIN_GRID].length_squares,
+                                                                    self.drawing_grids[MAIN_GRID].length_squares)
+                            else:
+                                print("Could not get position of cell in current path:", c_p, "in pathfinder step")
+                                
                 return False
         except StopIteration:
             cells = None   
@@ -142,6 +173,7 @@ class DrawingBoard:
         running = True
         pathfind_mode = False
         pathfind_finished = False
+        show_current_path = False
         
         #main loop
         while running:                             
@@ -155,7 +187,7 @@ class DrawingBoard:
                     #quits main loop
                     running = False
                     
-                elif event.type == self.TEN_MILLISECOND_TIMEOUT and pathfind_mode and not pathfind_finished:
+                elif event.type == self.TEN_MILLISECOND_TIMEOUT and pathfind_mode and not pathfind_finished and not show_current_path:
                     if self.pathfind_step_by_step():
                         print("pathfinder finished")
                         pathfind_finished = True
@@ -208,6 +240,13 @@ class DrawingBoard:
                         print("------------------------------------------------")
                         print()
                         print()
+                        
+                    elif event.key == pygame.K_j and pathfind_mode and not pathfind_finished:
+                        self.clear_current_path(MAIN_GRID)
+                        show_current_path = not show_current_path
+                        if self.pathfind_step_by_step(show_current_path=show_current_path):
+                            print("pathfinder finished")
+                            pathfind_finished = True
                         
                     elif event.key == pygame.K_s and not pathfind_mode:
                         self.show_sensor_data()
