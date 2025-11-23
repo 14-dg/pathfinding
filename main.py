@@ -24,4 +24,17 @@ def main():
     db.mainloop()
 
 if __name__ == "__main__":
+    print("controls: ")
+    print("'left click':    (can also hold down): set obstacle")
+    print("'right click':   set starting point")
+    print("'middle click':  remove cell to empty")
+    print("'p' key:         set target point")
+    print("'c' key:         clear board where mouse is")
+    print("'m' key:         create random maze where mouse is")
+    print("'space' key:     remove all grids to empty")
+    print("'enter' key:     run pathfinder")
+    print("'j' key:         stop pathfinder and current path")
+    print("'s' key:         show LIDAR scan from rover position")
+    print("'i' key:         show debug info")
+    print("Note: Pathfinder runs on ROVER_PATHFINDER_GRID but shows data from MAIN_GRID and ROVER_GRID")
     main()
