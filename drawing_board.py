@@ -87,7 +87,7 @@ class DrawingBoard:
     
     def pathfind_step_by_step(self, show_current_path: bool = False):
         if self.pf is None or self.find_gen is None:
-            self.pf = Pathfinder(self.drawing_grids[MAIN_GRID].grid)
+            self.pf = Pathfinder(self.drawing_grids[ROVER_GRID].grid)
             self.find_gen = self.pf.find(A_STAR)
         
         try:
@@ -96,15 +96,15 @@ class DrawingBoard:
                 
                 if changed_cells:
                     for c_c in changed_cells:
-                        self.drawing_grids[MAIN_GRID].update_cell_on_screen(self.screen, c_c)
+                        self.drawing_grids[ROVER_GRID].update_cell_on_screen(self.screen, c_c)
                         self.show_sensor_data(start_point_cell=current_cell)
 
                     if show_current_path:
-                        self.drawing_grids[MAIN_GRID].clear_current_path(self.screen)
+                        self.drawing_grids[ROVER_GRID].clear_current_path(self.screen)
                                 
                         current_cell_path = self.pf.get_parents(current_cell) if current_cell else []
                         for c_p in current_cell_path:
-                            self.drawing_grids[MAIN_GRID].change_type_of_cell(self.screen, c_p.get_cell_ind(), CURRENT_PATH_CELL)
+                            self.drawing_grids[ROVER_GRID].change_type_of_cell(self.screen, c_p.get_cell_ind(), CURRENT_PATH_CELL)
                                 
                 return False
         except StopIteration:
@@ -119,15 +119,15 @@ class DrawingBoard:
         
     def show_sensor_data(self, start_point_cell: Cell|None = None) -> None:
         # self.clear_board(SENSOR_GRID)
-        if start_point_cell == None and self.drawing_grids[MAIN_GRID].grid.starting_points:
-            start_cell = self.drawing_grids[MAIN_GRID].grid.starting_points[0]
+        if start_point_cell == None and self.drawing_grids[ROVER_GRID].grid.starting_points:
+            start_cell = self.drawing_grids[ROVER_GRID].grid.starting_points[0]
             
             self.drawing_grids[SENSOR_GRID].show_sensor_data(self.screen,
-                                                             self.drawing_grids[MAIN_GRID].grid,
+                                                             self.drawing_grids[ROVER_GRID].grid,
                                                              start_cell)
         elif start_point_cell:
             self.drawing_grids[SENSOR_GRID].show_sensor_data(self.screen,
-                                                             self.drawing_grids[MAIN_GRID].grid,
+                                                             self.drawing_grids[ROVER_GRID].grid,
                                                              start_point_cell)
         else:
             # print("No starting point set for LIDAR scan.")
@@ -182,7 +182,8 @@ class DrawingBoard:
                         board_hit = self.find_board_hit(pos_mouse)
                         if board_hit:
                             grid_name, cell_ind = board_hit 
-                            self.drawing_grids[grid_name].find_and_change_type_of_cell(self.screen, pos_mouse, TARGET)
+                            cell_ind = self.drawing_grids[grid_name].find_and_change_type_of_cell(self.screen, pos_mouse, TARGET)
+                            self.drawing_grids[ROVER_GRID].change_type_of_cell(self.screen, cell_ind, TARGET)
                                 
                     elif event.key == pygame.K_m and not pathfind_mode:
                         board_hit = self.find_board_hit(pos_mouse)
@@ -193,6 +194,7 @@ class DrawingBoard:
                             self.draw_boards()
                             
                             if grid_name == MAIN_GRID:
+                                self.create_random_maze(ROVER_GRID)
                                 self.clear_board(SENSOR_GRID)
                                 self.show_sensor_data()
                                 
@@ -200,18 +202,18 @@ class DrawingBoard:
                                 
                     elif event.key == pygame.K_i:
                         print("--------------Debugging Info--------------------")
-                        print("Starting Points:", self.drawing_grids[MAIN_GRID].grid.starting_points)
-                        print("Targets:", self.drawing_grids[MAIN_GRID].grid.targets)
-                        print("Obstacles:", self.drawing_grids[MAIN_GRID].grid.obstacles)
+                        print("Starting Points:", self.drawing_grids[ROVER_GRID].grid.starting_points)
+                        print("Targets:", self.drawing_grids[ROVER_GRID].grid.targets)
+                        print("Obstacles:", self.drawing_grids[ROVER_GRID].grid.obstacles)
                         print("--------------Pathfinder Info-------------------")
-                        print("Seen Points:", self.drawing_grids[MAIN_GRID].grid.seen_points)
-                        print("Way Points:", self.drawing_grids[MAIN_GRID].grid.way_points)
+                        print("Seen Points:", self.drawing_grids[ROVER_GRID].grid.seen_points)
+                        print("Way Points:", self.drawing_grids[ROVER_GRID].grid.way_points)
                         print("------------------------------------------------")
                         print()
                         print()
                         
                     elif event.key == pygame.K_j and pathfind_mode and not pathfind_finished:
-                        self.drawing_grids[MAIN_GRID].clear_current_path(self.screen)
+                        self.drawing_grids[ROVER_GRID].clear_current_path(self.screen)
                         show_current_path = not show_current_path
                         if self.pathfind_step_by_step(show_current_path=show_current_path):
                             print("pathfinder finished")
@@ -228,6 +230,7 @@ class DrawingBoard:
                         if board_hit:
                             grid_name, cell_ind = board_hit                     
                             self.drawing_grids[grid_name].find_and_change_type_of_cell(self.screen, pos_mouse, OBSTACLE)
+                            self.drawing_grids[ROVER_GRID].change_type_of_cell(self.screen, cell_ind, OBSTACLE)
                             if grid_name == MAIN_GRID:
                                 self.clear_board(SENSOR_GRID)
                                 self.show_sensor_data()
@@ -237,6 +240,7 @@ class DrawingBoard:
                         if board_hit:
                             grid_name, cell_ind = board_hit 
                             self.drawing_grids[grid_name].find_and_change_type_of_cell(self.screen, pos_mouse, EMPTY)
+                            self.drawing_grids[ROVER_GRID].change_type_of_cell(self.screen, cell_ind, EMPTY)
                             if grid_name == MAIN_GRID:
                                 self.clear_board(SENSOR_GRID)
                                 self.show_sensor_data()
@@ -246,6 +250,7 @@ class DrawingBoard:
                         if board_hit:
                             grid_name, cell_ind = board_hit 
                             self.drawing_grids[grid_name].find_and_change_type_of_cell(self.screen, pos_mouse, STARTING_POINT)
+                            self.drawing_grids[ROVER_GRID].change_type_of_cell(self.screen, cell_ind, STARTING_POINT)
                             if grid_name == MAIN_GRID:
                                 self.clear_board(SENSOR_GRID)
                                 self.show_sensor_data()
@@ -258,6 +263,7 @@ class DrawingBoard:
                     if board_hit:
                         grid_name, cell_ind = board_hit 
                         self.drawing_grids[grid_name].find_and_change_type_of_cell(self.screen, pos_mouse, OBSTACLE)
+                        self.drawing_grids[ROVER_GRID].change_type_of_cell(self.screen, cell_ind, OBSTACLE)
                         if grid_name == MAIN_GRID:
                             if grid_name == MAIN_GRID:
                                 self.clear_board(SENSOR_GRID)
