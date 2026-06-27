@@ -15,6 +15,8 @@ class DrawingBoard:
     def __init__(self, **drawing_grids: DrawingGrid) -> None:
         self.drawing_grids = drawing_grids
         
+        self.saved_boards_folder = "saved_boards"
+        
         self.reset_pathfinder_vars()
         
         self.initialise_canvas()
@@ -51,7 +53,15 @@ class DrawingBoard:
 
         #sets title
         pygame.display.set_caption("PATHFINDER")
-        
+    
+    def save_board(self, grid_name: str, filename: str) -> None:
+        if grid_name in self.drawing_grids:
+            self.drawing_grids[grid_name].save_board(f"{self.saved_boards_folder}/{filename}")
+            
+    def load_board(self, grid_name: str, filename: str) -> None:
+        if grid_name in self.drawing_grids:            
+            self.drawing_grids[grid_name].load_board(f"{self.saved_boards_folder}/{filename}")
+            self.drawing_grids[grid_name].draw_board(self.screen)
     
     def draw_boards(self):
         for dg in self.drawing_grids.values():
@@ -216,13 +226,15 @@ class DrawingBoard:
                             print("pathfinder finished")
                             pathfind_finished = True
                         
-                    elif event.key == pygame.K_s and not pathfind_mode:
-                        self.clear_board(SENSOR_GRID)
-                        self.show_sensor_data()
-                        
                     elif event.key == pygame.K_r and not pathfind_mode:
                         self.reset_pathfinder()
-                                    
+                        
+                    elif event.key == pygame.K_s and not pathfind_mode:
+                        self.save_board(ROVER_GRID, "rover_grid.txt")
+                        
+                    elif event.key == pygame.K_l and not pathfind_mode:
+                        self.load_board(ROVER_GRID, "rover_grid.txt")
+                
                 elif event.type == self.MOUSEBUTTONDOWN and not pathfind_mode:
                     if event.button == 1:     
                         left_click_button_down=True   

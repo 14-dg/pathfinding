@@ -46,6 +46,14 @@ class DrawingGrid:
         height += self.offset_y
         return (width, height)
     
+    def save_board(self, filename: str) -> None:
+        self.grid.save_grid(filename)
+        
+    def load_board(self, filename: str) -> None:
+        self.grid.load_grid(filename)
+        self.create_draw_grid()
+        print(f"Loaded grid from {filename}")
+    
     def find_cell_hit(self, pos: tuple) -> tuple:
         pos_x, pos_y = pos[0], pos[1]
         pos_in_cell_x = (pos_x - self.offset_x) / (self.length_squares + self.margin)

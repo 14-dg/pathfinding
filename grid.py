@@ -29,6 +29,24 @@ class Grid:
         for row in range(0, self.height):
             for column in range(0, self.width):
                 self.grid[row].append(Cell(row, column, grid_name=self.grid_name))
+                
+    def save_grid(self, filename: str) -> None:
+        with open(filename, 'w') as f:
+            for row in self.grid:
+                row_str = ','.join([cell.cell_type for cell in row])
+                f.write(row_str + '\n')
+                
+    def load_grid(self, filename: str) -> None:
+        with open(filename, 'r') as f:
+            lines = f.readlines()
+            self.height = len(lines)
+            self.width = len(lines[0].strip().split(','))
+            self.create_grid()  # Recreate the grid with the new dimensions
+            
+            for row_index, line in enumerate(lines):
+                cell_types = line.strip().split(',')
+                for col_index, cell_type in enumerate(cell_types):
+                    self.find_and_change_type_of_cell((row_index, col_index), cell_type)
     
     def is_cell_unoccupied(self, cell_ind: tuple) -> bool:
         cell_row, cell_column  = cell_ind[0], cell_ind[1]
