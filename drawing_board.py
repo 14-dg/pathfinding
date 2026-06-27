@@ -10,6 +10,7 @@ from pathfinder import Pathfinder
 from drawing_grid import DrawingGrid
 
 
+
 class DrawingBoard:
     def __init__(self, **drawing_grids: DrawingGrid) -> None:
         self.drawing_grids = drawing_grids
@@ -68,7 +69,7 @@ class DrawingBoard:
         if grid_name in self.drawing_grids:
             self.drawing_grids[grid_name].create_random_maze()
             self.drawing_grids[grid_name].draw_board(self.screen)
-            
+                
     def find_board_hit(self, pos: tuple) -> tuple[str, tuple]|None:
         for grid_name, dg in self.drawing_grids.items():
             if grid_name not in [MAIN_GRID]:
@@ -184,23 +185,17 @@ class DrawingBoard:
                         board_hit = self.find_board_hit(pos_mouse)
                         if board_hit:
                             grid_name, cell_ind = board_hit 
-                            cell_ind = self.drawing_grids[grid_name].find_and_change_type_of_cell(self.screen, pos_mouse, TARGET)
+                            cell_ind = self.drawing_grids[grid_name].change_type_of_cell(self.screen, cell_ind, TARGET)
                             self.drawing_grids[ROVER_GRID].change_type_of_cell(self.screen, cell_ind, TARGET)
                                 
                     elif event.key == pygame.K_m and not pathfind_mode:
-                        board_hit = self.find_board_hit(pos_mouse)
-                        if board_hit:
-                            grid_name, cell_ind = board_hit 
-                            self.create_random_maze(grid_name)
-                            self.reset_pathfinder_vars()                           
-                            self.draw_boards()
-                            
-                            if grid_name == MAIN_GRID:
-                                self.create_random_maze(ROVER_GRID)
-                                self.clear_board(SENSOR_GRID)
-                                self.show_sensor_data()
+                        self.create_random_maze(ROVER_GRID)
+                        self.clear_board(SENSOR_GRID)
+                        self.reset_pathfinder_vars()                           
+                        self.draw_boards()
+                        self.show_sensor_data()
                                 
-                            pathfind_finished = False
+                        pathfind_finished = False
                                 
                     elif event.key == pygame.K_i:
                         print("--------------Debugging Info--------------------")
@@ -234,7 +229,7 @@ class DrawingBoard:
                         board_hit = self.find_board_hit(pos_mouse)
                         if board_hit:
                             grid_name, cell_ind = board_hit                     
-                            self.drawing_grids[grid_name].find_and_change_type_of_cell(self.screen, pos_mouse, OBSTACLE)
+                            self.drawing_grids[grid_name].change_type_of_cell(self.screen, cell_ind, OBSTACLE)
                             self.drawing_grids[ROVER_GRID].change_type_of_cell(self.screen, cell_ind, OBSTACLE)
                             if grid_name == MAIN_GRID:
                                 self.clear_board(SENSOR_GRID)
@@ -244,7 +239,7 @@ class DrawingBoard:
                         board_hit = self.find_board_hit(pos_mouse)
                         if board_hit:
                             grid_name, cell_ind = board_hit 
-                            self.drawing_grids[grid_name].find_and_change_type_of_cell(self.screen, pos_mouse, EMPTY)
+                            self.drawing_grids[grid_name].change_type_of_cell(self.screen, cell_ind, EMPTY)
                             self.drawing_grids[ROVER_GRID].change_type_of_cell(self.screen, cell_ind, EMPTY)
                             if grid_name == MAIN_GRID:
                                 self.clear_board(SENSOR_GRID)
@@ -254,7 +249,7 @@ class DrawingBoard:
                         board_hit = self.find_board_hit(pos_mouse)
                         if board_hit:
                             grid_name, cell_ind = board_hit 
-                            self.drawing_grids[grid_name].find_and_change_type_of_cell(self.screen, pos_mouse, STARTING_POINT)
+                            self.drawing_grids[grid_name].change_type_of_cell(self.screen, cell_ind, STARTING_POINT)
                             self.drawing_grids[ROVER_GRID].change_type_of_cell(self.screen, cell_ind, STARTING_POINT)
                             if grid_name == MAIN_GRID:
                                 self.clear_board(SENSOR_GRID)
@@ -267,7 +262,7 @@ class DrawingBoard:
                     board_hit = self.find_board_hit(pos_mouse)
                     if board_hit:
                         grid_name, cell_ind = board_hit 
-                        self.drawing_grids[grid_name].find_and_change_type_of_cell(self.screen, pos_mouse, OBSTACLE)
+                        self.drawing_grids[grid_name].change_type_of_cell(self.screen, cell_ind, OBSTACLE)
                         self.drawing_grids[ROVER_GRID].change_type_of_cell(self.screen, cell_ind, OBSTACLE)
                         if grid_name == MAIN_GRID:
                             if grid_name == MAIN_GRID:

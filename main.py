@@ -30,7 +30,7 @@ if __name__ == "__main__":
     print("'middle click':  remove cell to empty")
     print("'p' key:         set target point")
     print("'c' key:         clear board where mouse is")
-    print("'m' key:         create random maze where mouse is")
+    print("'m' key:         create random maze in ROVER_GRID and show LIDAR scan")
     print("'space' key:     remove all grids to empty")
     print("'enter' key:     run pathfinder")
     print("'j' key:         stop pathfinder and current path")
