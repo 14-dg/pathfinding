@@ -1,15 +1,13 @@
 
 import math
+from random import randint
 
 from constants import *
 from cell import Cell
 from grid import Grid
 
-        
-import math
-
-def simulate_lidar_scan(grid: Grid, position: tuple, scan_range: int = 10, 
-                        points_per_rotation: int = 360
+def simulate_lidar_scan(grid: Grid, position: tuple, scan_range: int = 15, 
+                        points_per_rotation: int = 360, noise_factor_per: int = 10
                         ) -> tuple[set[tuple[int, int]], set[tuple[int, int]]]:
     """
     Simulates a 360° LIDAR scan.
@@ -27,6 +25,7 @@ def simulate_lidar_scan(grid: Grid, position: tuple, scan_range: int = 10,
         rad = math.radians(angle)
         
         for r in range(1, scan_range + 1):
+            noise = randint(0, int(noise_factor_per)) / 100.0  # small noise factor
             scan_row = int(round(pos_row + r * math.sin(rad)))
             scan_col = int(round(pos_col + r * math.cos(rad)))
             
@@ -34,7 +33,9 @@ def simulate_lidar_scan(grid: Grid, position: tuple, scan_range: int = 10,
                 cell = grid.grid[scan_row][scan_col]
                 
                 if cell.cell_type == OBSTACLE:
-                    occupied_cells.add((scan_row, scan_col))
+                    scan_row_noise = int(round(scan_row * (1 - noise)))
+                    scan_col_noise = int(round(scan_col * (1 - noise)))
+                    occupied_cells.add((scan_row_noise, scan_col_noise))
                     break  # hit obstacle → stop this ray
                 elif cell.cell_type in [SEEN_POINT, CURRENT_PATH_CELL, WAY_POINT]:
                     continue  # ignore these special cells
