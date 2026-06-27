@@ -230,10 +230,35 @@ class DrawingBoard:
                         self.reset_pathfinder()
                         
                     elif event.key == pygame.K_s and not pathfind_mode:
-                        self.save_board(ROVER_GRID, "rover_grid.txt")
+                        self.save_board(MAIN_GRID, "rover_grid.txt")
                         
                     elif event.key == pygame.K_l and not pathfind_mode:
                         self.load_board(ROVER_GRID, "rover_grid.txt")
+                        self.load_board(MAIN_GRID, "rover_grid.txt")
+                    
+                    elif event.key == pygame.K_1 and not pathfind_mode:
+                        print("Loading board 1")
+                        self.load_board(ROVER_GRID, "1.txt")
+                        self.load_board(MAIN_GRID, "1.txt")
+                        self.show_sensor_data()
+                        
+                    elif event.key == pygame.K_2 and not pathfind_mode:
+                        print("Loading board 2")
+                        self.load_board(ROVER_GRID, "2.txt")
+                        self.load_board(MAIN_GRID, "2.txt")
+                        self.show_sensor_data()
+
+                    elif event.key == pygame.K_3 and not pathfind_mode:
+                        print("Loading board 3")
+                        self.load_board(ROVER_GRID, "3.txt")
+                        self.load_board(MAIN_GRID, "3.txt")
+                        self.show_sensor_data()
+                    
+                    elif event.key == pygame.K_4 and not pathfind_mode:
+                        print("Loading board 4")
+                        self.load_board(ROVER_GRID, "4.txt")
+                        self.load_board(MAIN_GRID, "4.txt")
+                        self.show_sensor_data()
                 
                 elif event.type == self.MOUSEBUTTONDOWN and not pathfind_mode:
                     if event.button == 1:     
