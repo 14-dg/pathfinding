@@ -7,7 +7,7 @@ from cell import Cell
 from grid import Grid
 
 def simulate_lidar_scan(grid: Grid, position: tuple, scan_range: int = 15, 
-                        points_per_rotation: int = 360, noise_factor_per: int = 10
+                        points_per_rotation: int = 360, noise_factor_per: int = 0
                         ) -> tuple[set[tuple[int, int]], set[tuple[int, int]]]:
     """
     Simulates a 360° LIDAR scan.

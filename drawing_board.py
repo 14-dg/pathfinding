@@ -155,6 +155,8 @@ class DrawingBoard:
         pathfind_mode = False
         pathfind_finished = False
         show_current_path = False
+        start_time = None
+        end_time = None
         
         #main loop
         while running:                             
@@ -172,6 +174,12 @@ class DrawingBoard:
                     if self.pathfind_step_by_step():
                         print("pathfinder finished")
                         pathfind_finished = True
+                        end_time = time.time()
+                    
+                        self.draw_boards()
+                        
+                        if start_time is not None:
+                            print(f"Pathfinding took {end_time - start_time:.4f} seconds")
                 
                 #checks key presses
                 elif event.type == pygame.KEYDOWN:
@@ -179,6 +187,8 @@ class DrawingBoard:
                     if event.key == pygame.K_RETURN:
                         pathfind_mode = not pathfind_mode
                         print("Pathfinding mode:", pathfind_mode)
+                        if pathfind_mode:
+                            start_time = time.time()
 
                     elif event.key == pygame.K_SPACE and not pathfind_mode: 
                         self.reset_pathfinder_vars()                           
