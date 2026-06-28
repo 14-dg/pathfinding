@@ -1,226 +1,260 @@
-# grid.py
-from typing import Any, List
+"""
+Datenmodell eines rechteckigen Gitters.
+Bietet Operationen zum Setzen von Zelltypen und benachrichtigt Listener über Änderungen.
+"""
+
+from __future__ import annotations
+import logging
+from typing import Callable, List, Set, Tuple
+
 from cell import Cell
 from constants import *
 
+logger = logging.getLogger(__name__)
+
+
 class Grid:
     def __init__(self, width: int, height: int, grid_name: str = MAIN_GRID) -> None:
-        self.grid = []
-        self.grid_name = grid_name
-        
-        self.targets = set()
-        self.obstacles = set()
-        self.starting_points = set()
-        
-        self.seen_points = set()
-        self.current_path_points = set()
-        self.way_points = set()
-         
         self.width = width
         self.height = height
-        self.create_grid()
-        
-    def create_grid(self) -> None:
-        self.grid = [[] for h in range(self.height)]
-        for row in range(0, self.height):
-            for column in range(0, self.width):
-                self.grid[row].append(Cell(row, column, grid_name=self.grid_name))
-                
+        self.grid_name = grid_name
+
+        self.targets: set[Cell] = set()
+        self.obstacles: set[Cell] = set()
+        self.starting_points: set[Cell] = set()
+        self.seen_points: set[Cell] = set()
+        self.current_path_points: set[Cell] = set()
+        self.way_points: set[Cell] = set()
+
+        self._change_listeners: list[Callable[[Cell], None]] = []
+
+        self.grid: list[list[Cell]] = []
+        self._create_grid()
+
+    # -------------------------------------------------------------------------
+    #  Listener-System
+    # -------------------------------------------------------------------------
+    def add_change_listener(self, listener: Callable[[Cell], None]) -> None:
+        """Registriert eine Funktion, die bei jeder Zelländerung aufgerufen wird."""
+        self._change_listeners.append(listener)
+
+    def _notify_change(self, cell: Cell) -> None:
+        for listener in self._change_listeners:
+            listener(cell)
+
+    # -------------------------------------------------------------------------
+    #  Gitter-Initialisierung
+    # -------------------------------------------------------------------------
+    def _create_grid(self) -> None:
+        self.grid = [[Cell(row, col, grid_name=self.grid_name) for col in range(self.width)] for row in range(self.height)]
+
+    # -------------------------------------------------------------------------
+    #  Persistenz
+    # -------------------------------------------------------------------------
     def save_grid(self, filename: str) -> None:
         with open(filename, 'w') as f:
             for row in self.grid:
-                row_str = ','.join([cell.cell_type for cell in row])
-                f.write(row_str + '\n')
-                
+                f.write(','.join(cell.cell_type for cell in row) + '\n')
+
     def load_grid(self, filename: str) -> None:
         with open(filename, 'r') as f:
             lines = f.readlines()
-            self.height = len(lines)
-            self.width = len(lines[0].strip().split(','))
-            self.create_grid()
-            for row_index, line in enumerate(lines):
-                cell_types = line.strip().split(',')
-                for col_index, cell_type in enumerate(cell_types):
-                    self.find_and_change_type_of_cell((row_index, col_index), cell_type)
-    
-    def is_cell_unoccupied(self, cell_ind: tuple) -> bool:
-        cell_row, cell_column = cell_ind
-        cell = self.grid[cell_row][cell_column]
-        return cell.cell_type not in [TARGET, STARTING_POINT, OBSTACLE]
-    
-    def change_type_of_cell(self, cell_ind: tuple, new_type: str) -> Cell | None:
-        cell_row, cell_column = cell_ind
-        self.grid[cell_row][cell_column].set_cell_type(new_type)
-        return self.grid[cell_row][cell_column]
-    
-    def change_type_of_cell_target(self, cell_ind: tuple) -> List[Cell] | None:
-        old_target = None
-        if self.targets:
-            old_target = self.targets.pop()
-            if old_target:
-                self.change_type_of_cell(old_target.get_cell_ind(), EMPTY)
-            else:
-                raise Exception("Error: old target cell not found in grid.")
-        self.targets.add(self.change_type_of_cell(cell_ind, TARGET))
-        if old_target:
-            return [old_target, *self.targets]
-        else:
-            return [*self.targets]
-        
-    def change_type_of_cell_starting_point(self, cell_ind: tuple) -> List[Cell] | None:
-        old_starting_point = None
-        if self.starting_points:
-            old_starting_point = self.starting_points.pop()
-            if old_starting_point:
-                self.change_type_of_cell(old_starting_point.get_cell_ind(), EMPTY)
-            else:
-                raise Exception("Error: old starting point cell not found in grid.")
-        self.starting_points.add(self.change_type_of_cell(cell_ind, STARTING_POINT))
-        if old_starting_point:
-            return [old_starting_point, *self.starting_points]
-        else:
-            return [*self.starting_points]
-        
-    def change_type_of_cell_seen_point(self, cell_ind: tuple) -> Cell | None:
-        if self.is_cell_unoccupied(cell_ind):
-            cell = self.grid[cell_ind[0]][cell_ind[1]]
-            self.seen_points.add(cell)
-            return self.change_type_of_cell(cell_ind, SEEN_POINT)
-        
-    def change_type_of_cell_current_path_points(self, cell_ind: tuple) -> Cell | None:
-        if self.is_cell_unoccupied(cell_ind):
-            cell = self.grid[cell_ind[0]][cell_ind[1]]
-            self.current_path_points.add(cell)
-            return self.change_type_of_cell(cell_ind, CURRENT_PATH_CELL)
-    
-    def change_type_of_cell_way_point(self, cell_ind: tuple) -> Cell | None:
-        if self.is_cell_unoccupied(cell_ind):
-            cell = self.grid[cell_ind[0]][cell_ind[1]]
-            if cell.cell_type == CURRENT_PATH_CELL:
-                self.current_path_points.discard(cell)
-            self.way_points.add(cell)
-            return self.change_type_of_cell(cell_ind, WAY_POINT)
-        
-    def change_type_of_cell_obstacle(self, cell_ind: tuple) -> Cell | None:
+        self.height = len(lines)
+        self.width = len(lines[0].strip().split(','))
+        self._create_grid()
+        for row_idx, line in enumerate(lines):
+            for col_idx, cell_type in enumerate(line.strip().split(',')):
+                self.find_and_change_type_of_cell((row_idx, col_idx), cell_type)
+
+    # -------------------------------------------------------------------------
+    #  Kern – Zelltyp ändern
+    # -------------------------------------------------------------------------
+    def change_type_of_cell(self, cell_ind: tuple[int, int], new_type: str) -> Cell:
+        """
+        Ändert den Typ einer Zelle und benachrichtigt Listener.
+        Gibt die betroffene Zelle zurück.
+        """
+        row, col = cell_ind
+        cell = self.grid[row][col]
+        cell.set_cell_type(new_type)
+        self._notify_change(cell)
+        return cell
+
+    def is_cell_unoccupied(self, cell_ind: tuple[int, int]) -> bool:
+        row, col = cell_ind
+        return self.grid[row][col].cell_type not in (TARGET, STARTING_POINT, OBSTACLE)
+
+    # -------------------------------------------------------------------------
+    #  Interne Helfer für Typwechsel mit Set-Verwaltung
+    # -------------------------------------------------------------------------
+    def _set_empty(self, cell_ind: tuple[int, int]) -> Cell:
         cell = self.grid[cell_ind[0]][cell_ind[1]]
-        if cell.cell_type != OBSTACLE:
-            self.obstacles.add(cell)
-            return self.change_type_of_cell(cell_ind, OBSTACLE)
-    
-    def change_type_of_cell_empty(self, cell_ind: tuple) -> Cell | None:
-        cell = self.grid[cell_ind[0]][cell_ind[1]]
-        if cell.cell_type == OBSTACLE:
-            self.obstacles.discard(cell)
-        if cell.cell_type == TARGET:
+        prev = cell.previous_type
+        # Aus allen speziellen Mengen entfernen
+        if prev == TARGET:
             self.targets.discard(cell)
-        if cell.cell_type == STARTING_POINT:
+        elif prev == STARTING_POINT:
             self.starting_points.discard(cell)
-        if cell.cell_type == SEEN_POINT:
+        elif prev == OBSTACLE:
+            self.obstacles.discard(cell)
+        elif prev == SEEN_POINT:
             self.seen_points.discard(cell)
-        if cell.cell_type == CURRENT_PATH_CELL:
+        elif prev == CURRENT_PATH_CELL:
             self.current_path_points.discard(cell)
-        if cell.cell_type == WAY_POINT:
+        elif prev == WAY_POINT:
             self.way_points.discard(cell)
         return self.change_type_of_cell(cell_ind, EMPTY)
-  
-    def find_and_change_type_of_cell(self, cell_ind: tuple, new_type: str) -> List[Cell] | None:
-        c = None
-        if cell_ind:
-            if new_type == TARGET:
-                self.change_type_of_cell_empty(cell_ind)
-                return self.change_type_of_cell_target(cell_ind)
-            elif new_type == STARTING_POINT:
-                self.change_type_of_cell_empty(cell_ind)
-                return self.change_type_of_cell_starting_point(cell_ind)
-            elif new_type == SEEN_POINT:
-                c = self.change_type_of_cell_seen_point(cell_ind)
-            elif new_type == CURRENT_PATH_CELL:
-                c = self.change_type_of_cell_current_path_points(cell_ind)
-            elif new_type == WAY_POINT:
-                c = self.change_type_of_cell_way_point(cell_ind)
-            elif new_type == OBSTACLE:
-                self.change_type_of_cell_empty(cell_ind)
-                c = self.change_type_of_cell_obstacle(cell_ind)
-            elif new_type == EXPECTED_OCCUPIED:
-                c = self.change_type_of_cell_empty(cell_ind)
-                c = self.change_type_of_cell(cell_ind, EXPECTED_OCCUPIED)
-            elif new_type == EXPECTED_FREE:
-                c = self.change_type_of_cell_empty(cell_ind)
-                c = self.change_type_of_cell(cell_ind, EXPECTED_FREE)
-            elif new_type == ROVER_POSITION:
-                c = self.change_type_of_cell_empty(cell_ind)
-                c = self.change_type_of_cell(cell_ind, ROVER_POSITION)
-            elif new_type == EMPTY:
-                c = self.change_type_of_cell_empty(cell_ind)
-            else:
-                raise ValueError(f"Unknown cell type: {new_type}")
-        if c:
-            return [c]
-        return None
-    
+
+    def _set_target(self, cell_ind: tuple[int, int]) -> List[Cell]:
+        # Vorheriges Ziel entfernen
+        if self.targets:
+            old = self.targets.pop()
+            self._set_empty(old.get_cell_ind())
+        cell = self.change_type_of_cell(cell_ind, TARGET)
+        self.targets.add(cell)
+        return [cell]
+
+    def _set_starting_point(self, cell_ind: tuple[int, int]) -> List[Cell]:
+        if self.starting_points:
+            old = self.starting_points.pop()
+            self._set_empty(old.get_cell_ind())
+        cell = self.change_type_of_cell(cell_ind, STARTING_POINT)
+        self.starting_points.add(cell)
+        return [cell]
+
+    def _set_obstacle(self, cell_ind: tuple[int, int]) -> List[Cell]:
+        cell = self.grid[cell_ind[0]][cell_ind[1]]
+        if cell.cell_type != OBSTACLE:
+            self._set_empty(cell_ind)
+            self.change_type_of_cell(cell_ind, OBSTACLE)
+            self.obstacles.add(cell)
+        return [cell]
+
+    def _set_seen_point(self, cell_ind: tuple[int, int]) -> List[Cell] | None:
+        if not self.is_cell_unoccupied(cell_ind):
+            return None
+        cell = self.change_type_of_cell(cell_ind, SEEN_POINT)
+        self.seen_points.add(cell)
+        return [cell]
+
+    def _set_current_path_cell(self, cell_ind: tuple[int, int]) -> List[Cell] | None:
+        if not self.is_cell_unoccupied(cell_ind):
+            return None
+        cell = self.change_type_of_cell(cell_ind, CURRENT_PATH_CELL)
+        self.current_path_points.add(cell)
+        return [cell]
+
+    def _set_way_point(self, cell_ind: tuple[int, int]) -> List[Cell] | None:
+        if not self.is_cell_unoccupied(cell_ind):
+            return None
+        cell = self.grid[cell_ind[0]][cell_ind[1]]
+        if cell.cell_type == CURRENT_PATH_CELL:
+            self.current_path_points.discard(cell)
+        self.change_type_of_cell(cell_ind, WAY_POINT)
+        self.way_points.add(cell)
+        return [cell]
+
+    def _set_expected_occupied(self, cell_ind: tuple[int, int]) -> List[Cell]:
+        self._set_empty(cell_ind)
+        return [self.change_type_of_cell(cell_ind, EXPECTED_OCCUPIED)]
+
+    def _set_expected_free(self, cell_ind: tuple[int, int]) -> List[Cell]:
+        self._set_empty(cell_ind)
+        return [self.change_type_of_cell(cell_ind, EXPECTED_FREE)]
+
+    def _set_rover_position(self, cell_ind: tuple[int, int]) -> List[Cell]:
+        self._set_empty(cell_ind)
+        return [self.change_type_of_cell(cell_ind, ROVER_POSITION)]
+
+    # Mapping von Typ zu Handler
+    _TYPE_HANDLERS = {
+        TARGET: _set_target,
+        STARTING_POINT: _set_starting_point,
+        OBSTACLE: _set_obstacle,
+        SEEN_POINT: _set_seen_point,
+        CURRENT_PATH_CELL: _set_current_path_cell,
+        WAY_POINT: _set_way_point,
+        EXPECTED_OCCUPIED: _set_expected_occupied,
+        EXPECTED_FREE: _set_expected_free,
+        ROVER_POSITION: _set_rover_position,
+        EMPTY: _set_empty,
+    }
+
+    def find_and_change_type_of_cell(self, cell_ind: tuple[int, int], new_type: str) -> List[Cell] | None:
+        """
+        Öffentliche Schnittstelle zum Ändern eines Zelltyps.
+        Verwendet das interne Handler-Mapping.
+        """
+        handler = self._TYPE_HANDLERS.get(new_type)
+        if handler is None:
+            raise ValueError(f"Unbekannter Zelltyp: {new_type}")
+        return handler(self, cell_ind)
+
+    # -------------------------------------------------------------------------
+    #  Pfadbereinigungen
+    # -------------------------------------------------------------------------
     def clear_current_path_points(self) -> list[Cell]:
         temp = list(self.current_path_points)
-        for cell in temp:   # über die Kopie iterieren, nicht über das Original
-            self.change_type_of_cell_empty(cell.get_cell_ind())
-        self.current_path_points = set()
+        for cell in temp:
+            self._set_seen_point(cell.get_cell_ind())
+        self.current_path_points.clear()
         return temp
-    
+
     def clear_board(self) -> None:
         for row in self.grid:
-            for c in row:
-                if c:
-                    self.change_type_of_cell_empty(c.get_cell_ind())
-        self.targets = set()
-        self.obstacles = set()
-        self.starting_points = set()
-        self.seen_points = set()
-        self.current_path_points = set()
-        self.way_points = set()
-        
-    def clear_board_of_pathfinding_types(self) -> List[Cell]:
-        removed_cells = []
-        for x in self.grid:
-            for c in x:
-                if c.cell_type in [SEEN_POINT, CURRENT_PATH_CELL, WAY_POINT]:
-                    if c not in self.starting_points:
-                        removed_cells.append(c)
-                        self.change_type_of_cell_empty(c.get_cell_ind())
-        self.seen_points = set()
-        self.current_path_points = set()
-        self.way_points = set()
-        return removed_cells
-        
+            for cell in row:
+                self._set_empty(cell.get_cell_ind())
+        self.targets.clear()
+        self.obstacles.clear()
+        self.starting_points.clear()
+        self.seen_points.clear()
+        self.current_path_points.clear()
+        self.way_points.clear()
+
+    def clear_board_of_pathfinding_types(self) -> list[Cell]:
+        removed = []
+        for row in self.grid:
+            for cell in row:
+                if cell.cell_type in (SEEN_POINT, CURRENT_PATH_CELL, WAY_POINT):
+                    if cell not in self.starting_points:
+                        removed.append(cell)
+                        self._set_empty(cell.get_cell_ind())
+        self.seen_points.clear()
+        self.current_path_points.clear()
+        self.way_points.clear()
+        return removed
+
+    # -------------------------------------------------------------------------
+    #  Nachbarschaft
+    # -------------------------------------------------------------------------
     def get_adjacent_cells(self, cell: Cell) -> List[Cell] | None:
-        adjacent_cells = []
-        if cell:
-            row, column = cell.get_cell_ind()
-            directions = [(-1, 0), (1, 0), (0, -1), (0, 1),
-                          (-1, -1), (-1, 1), (1, -1), (1, 1)]
-            for direction in directions:
-                new_column = column + direction[0]
-                new_row = row + direction[1]
-                if 0 <= new_column < self.width and 0 <= new_row < self.height:
-                    adjacent_cells.append(self.grid[new_row][new_column])
-        if adjacent_cells == []:
-            return None
-        return adjacent_cells
-    
+        row, col = cell.get_cell_ind()
+        directions = [(-1, 0), (1, 0), (0, -1), (0, 1),
+                      (-1, -1), (-1, 1), (1, -1), (1, 1)]
+        neighbours = []
+        for dr, dc in directions:
+            nr, nc = row + dr, col + dc
+            if 0 <= nr < self.height and 0 <= nc < self.width:
+                neighbours.append(self.grid[nr][nc])
+        return neighbours or None
+
     def get_adjacent_non_obstacle_cells(self, cell: Cell) -> List[Cell] | None:
-        adjacent_cells = self.get_adjacent_cells(cell)
-        if not adjacent_cells:
+        neighbours = self.get_adjacent_cells(cell)
+        if not neighbours:
             return None
-        adjacent_cells_empty = []
-        for cell in adjacent_cells:
-            if cell.cell_type != OBSTACLE:
-                adjacent_cells_empty.append(cell)
-        if adjacent_cells_empty == []:
-            return None
-        return adjacent_cells_empty
-                
-    def get_cells_of_type(self, cell_type: str) -> list:
-        cells = []
-        for h in self.grid:
-            for c in h:
-                if c.cell_type == cell_type:
-                    cells.append(c)
-        return cells
+        return [n for n in neighbours if n.cell_type != OBSTACLE]
+
+    def get_cells_of_type(self, cell_type: str) -> list[Cell]:
+        return [cell for row in self.grid for cell in row if cell.cell_type == cell_type]
+
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.DEBUG)
+    g = Grid(5, 5)
+    g.find_and_change_type_of_cell((1, 1), OBSTACLE)
+    assert g.grid[1][1].cell_type == OBSTACLE
+    g.find_and_change_type_of_cell((2, 2), TARGET)
+    assert len(g.targets) == 1
+    g.find_and_change_type_of_cell((2, 2), EMPTY)
+    assert len(g.targets) == 0
+    print("Grid tests passed.")

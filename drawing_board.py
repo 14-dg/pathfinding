@@ -1,321 +1,354 @@
-# drawing_board.py
-import pygame
+"""
+Hauptsteuerung der Anwendung.
+Verwaltet Fenster, Events und koordiniert die Grids.
+"""
+
+from __future__ import annotations
+import logging
 import time
-from typing import Sequence
+from typing import Optional, Tuple, Dict, Callable
+
+import pygame
 
 from constants import *
 from cell import Cell
 from grid import Grid
-
 from pathfinder import Pathfinder
 from drawing_grid import DrawingGrid
+
+logger = logging.getLogger(__name__)
 
 
 class DrawingBoard:
     def __init__(self, **drawing_grids: DrawingGrid) -> None:
-        self.drawing_grids = drawing_grids
-        
+        self.drawing_grids: dict[str, DrawingGrid] = drawing_grids
         self.saved_boards_folder = "saved_boards"
-        
-        self.reset_pathfinder_vars()
-        
-        self.initialise_canvas()
-        
-    def initialise_canvas(self) -> None:
+
+        self._pf: Optional[Pathfinder] = None
+        self._find_gen = None
+        self._last_step_cell: Optional[Cell] = None   # aktuelle Zelle des Algorithmus
+
+        self._init_pygame()
+        self._attach_grids()
+
+    # -------------------------------------------------------------------------
+    #  Pygame-Initialisierung
+    # -------------------------------------------------------------------------
+    def _init_pygame(self) -> None:
         pygame.init()
         pygame.font.init()
         self.myfont = pygame.font.SysFont('Comic Sans MS', 50)
-        
+
         self.MOUSEBUTTONUP = pygame.MOUSEBUTTONUP
         self.MOUSEBUTTONDOWN = pygame.MOUSEBUTTONDOWN
         self.MOUSEMOTION = pygame.MOUSEMOTION
-        self.mouse = pygame.mouse.get_pressed()
-        
+
         self.TEN_MILLISECOND_TIMEOUT = pygame.USEREVENT + 1
-        pygame.time.set_timer(self.TEN_MILLISECOND_TIMEOUT, 10)
-        
+        pygame.time.set_timer(self.TEN_MILLISECOND_TIMEOUT, TIMER_INTERVAL_MS)
+
         screen_width = 0
         screen_height = 0
         for dg in self.drawing_grids.values():
-            size = dg.get_screen_dimensions()
-            screen_width = max(size[0], screen_width)
-            screen_height = max(size[1], screen_height)            
+            w, h = dg.get_screen_dimensions()
+            screen_width = max(screen_width, w)
+            screen_height = max(screen_height, h)
         self.screen = pygame.display.set_mode((screen_width, screen_height))
-        
         self.clock = pygame.time.Clock()
         pygame.display.set_caption("PATHFINDER")
-    
+
+    def _attach_grids(self) -> None:
+        for dg in self.drawing_grids.values():
+            dg.attach_to_grid(self.screen)
+
+    # -------------------------------------------------------------------------
+    #  Persistenz
+    # -------------------------------------------------------------------------
     def save_board(self, grid_name: str, filename: str) -> None:
         if grid_name in self.drawing_grids:
             self.drawing_grids[grid_name].save_board(f"{self.saved_boards_folder}/{filename}")
-            
-    def load_board(self, grid_name: str, filename: str) -> None:
-        if grid_name in self.drawing_grids:            
-            self.drawing_grids[grid_name].load_board(f"{self.saved_boards_folder}/{filename}")
-            self.drawing_grids[grid_name].draw_board(self.screen)
-    
-    def draw_boards(self):
-        for dg in self.drawing_grids.values():
-            dg.draw_board(self.screen)
-            
-    def clear_board(self, grid_name: str):
-        if grid_name in self.drawing_grids:
-            self.drawing_grids[grid_name].clear_board(self.screen)
-            
-    def clear_boards(self):
-        for dg in self.drawing_grids.values():
-            self.clear_board(dg.grid.grid_name)
-            
-    def create_random_maze(self, grid_name: str):
-        if grid_name in self.drawing_grids:
-            self.drawing_grids[grid_name].create_random_maze()
-            self.drawing_grids[grid_name].draw_board(self.screen)
-                
-    def find_board_hit(self, pos: tuple) -> tuple[str, tuple] | None:
-        for grid_name, dg in self.drawing_grids.items():
-            if grid_name not in [MAIN_GRID]:
-                continue
-            cell_ind = dg.find_cell_hit(pos)
-            if cell_ind[0] != -1 and cell_ind[1] != -1:
-                return grid_name, cell_ind
-        return None
-                
-    def reset_pathfinder_vars(self):
-        self.pf = None
-        self.find_gen = None
-        
-    def reset_pathfinder(self):
-        self.reset_pathfinder_vars()
-        self.drawing_grids[ROVER_GRID].clear_board_of_pathfinding_types(self.screen)
-    
-    def pathfind_step_by_step(self, show_current_path: bool = False, batch_size: int = 10):
-        if self.pf is None or self.find_gen is None:
-            self.pf = Pathfinder(self.drawing_grids[ROVER_GRID].grid)
-            self.find_gen = self.pf.find(A_STAR)
 
-        all_changed_cells = set()
+    def load_board(self, grid_name: str, filename: str) -> None:
+        if grid_name in self.drawing_grids:
+            self.drawing_grids[grid_name].load_board(f"{self.saved_boards_folder}/{filename}")
+
+    # -------------------------------------------------------------------------
+    #  Pfadfinder-Hilfen
+    # -------------------------------------------------------------------------
+    def _reset_pathfinder_vars(self) -> None:
+        self._pf = None
+        self._find_gen = None
+        self._last_step_cell = None
+
+    def _reset_pathfinder(self) -> None:
+        self._reset_pathfinder_vars()
+        self.drawing_grids[ROVER_GRID].clear_board_of_pathfinding_types()
+
+    def _pathfind_step(self, show_path: bool = False, batch: int = PATHFINDING_BATCH_SIZE) -> bool:
+        if self._pf is None or self._find_gen is None:
+            self._pf = Pathfinder(self.drawing_grids[ROVER_GRID].grid)
+            self._find_gen = self._pf.find(A_STAR)
+
+        all_changed: set[Cell] = set()
         last_cell = None
 
-        for _ in range(batch_size):
+        for _ in range(batch):
             try:
-                if self.find_gen:
-                    changed_cells, current_cell = next(self.find_gen)
-                    if changed_cells:
-                        all_changed_cells.update(changed_cells)
-                        last_cell = current_cell
+                if self._find_gen:
+                    changed, current = next(self._find_gen)
+                    if changed:
+                        all_changed.update(changed)
+                        last_cell = current
             except StopIteration:
-                self.reset_pathfinder_vars()
-                return True   # fertig
+                self._reset_pathfinder_vars()
+                return True
             except Exception as e:
-                print("Error during pathfinding step:", e)
-                self.reset_pathfinder_vars()
+                logger.exception("Fehler im Pfadfinder-Schritt")
+                self._reset_pathfinder_vars()
                 return True
 
-        if all_changed_cells:
-            for c_c in all_changed_cells:
-                self.drawing_grids[ROVER_GRID].update_cell_on_screen(self.screen, c_c)
+        self._last_step_cell = last_cell   # für Pfadanzeige merken
+
+        if all_changed:
             if last_cell:
-                self.show_sensor_data(start_point_cell=last_cell)
+                self._show_sensor_data(last_cell)
 
-            if show_current_path and last_cell:
-                self.drawing_grids[ROVER_GRID].clear_current_path(self.screen)
-                current_cell_path = self.pf.get_parents(last_cell)
-                for c_p in current_cell_path:
-                    self.drawing_grids[ROVER_GRID].change_type_of_cell(
-                        self.screen, c_p.get_cell_ind(), CURRENT_PATH_CELL
-                    )
+            if show_path and last_cell and self._pf:
+                self.drawing_grids[ROVER_GRID].clear_current_path()
+                path_cells = self._pf.get_parents(last_cell)
+                for pc in path_cells:
+                    self.drawing_grids[ROVER_GRID].change_type_of_cell(pc.get_cell_ind(), CURRENT_PATH_CELL)
+
         return False
-        
-    def show_sensor_data(self, start_point_cell: Cell | None = None) -> None:
-        if start_point_cell is None and self.drawing_grids[ROVER_GRID].grid.starting_points:
-            start_cell = next(iter(self.drawing_grids[ROVER_GRID].grid.starting_points))
-            self.drawing_grids[SENSOR_GRID].show_sensor_data(self.screen,
-                                                             self.drawing_grids[ROVER_GRID].grid,
-                                                             start_cell)
-        elif start_point_cell:
-            self.drawing_grids[SENSOR_GRID].show_sensor_data(self.screen,
-                                                             self.drawing_grids[ROVER_GRID].grid,
-                                                             start_point_cell)
 
-    def mainloop(self):
-        self.draw_boards()
+    # -------------------------------------------------------------------------
+    #  Sensor-Anzeige
+    # -------------------------------------------------------------------------
+    def _show_sensor_data(self, start_cell: Cell | None = None) -> None:
+        if start_cell is None:
+            if self.drawing_grids[ROVER_GRID].grid.starting_points:
+                start_cell = next(iter(self.drawing_grids[ROVER_GRID].grid.starting_points))
+            else:
+                return
+        self.drawing_grids[SENSOR_GRID].show_sensor_data(
+            self.drawing_grids[ROVER_GRID].grid, start_cell
+        )
+
+    # -------------------------------------------------------------------------
+    #  Maus-Hit-Test
+    # -------------------------------------------------------------------------
+    def _find_board_hit(self, pos: tuple[int, int]) -> tuple[str, tuple[int, int]] | None:
+        for name, dg in self.drawing_grids.items():
+            if name != MAIN_GRID:
+                continue
+            row, col = dg.find_cell_hit(pos)
+            if row != -1 and col != -1:
+                return name, (row, col)
+        return None
+
+    # -------------------------------------------------------------------------
+    #  Event-Handler
+    # -------------------------------------------------------------------------
+    def _handle_quit(self, event) -> bool:
+        return False
+
+    def _handle_timer(self, event) -> bool:
+        if not (self._pathfind_mode and not self._pathfind_finished and not self._show_current_path):
+            return True
+        finished = self._pathfind_step(batch=PATHFINDING_BATCH_SIZE)
+        if finished:
+            logger.info("Pfadfinder beendet.")
+            self._pathfind_finished = True
+            self._end_time = time.time()
+            self._draw_all()
+            if self._start_time is not None:
+                print(f"Pathfinding took {self._end_time - self._start_time:.4f} seconds")
+        self._needs_flip = True
+        return True
+
+    def _handle_keydown(self, event) -> bool:
+        key_actions: dict[int, Callable[[], None]] = {
+            pygame.K_RETURN: self._toggle_pathfinding,
+            pygame.K_SPACE: self._clear_all,
+            pygame.K_c: self._clear_grid_under_mouse,
+            pygame.K_p: self._set_target,
+            pygame.K_m: self._generate_maze,
+            pygame.K_i: self._print_debug_info,
+            pygame.K_j: self._toggle_current_path,
+            pygame.K_r: self._reset_pathfinder,
+            pygame.K_s: self._save,
+            pygame.K_l: self._load_default,
+            pygame.K_1: lambda: self._load_board(1),
+            pygame.K_2: lambda: self._load_board(2),
+            pygame.K_3: lambda: self._load_board(3),
+            pygame.K_4: lambda: self._load_board(4),
+        }
+        action = key_actions.get(event.key)
+        if action:
+            action()
+            self._needs_flip = True
+        return True
+
+    def _handle_mouse_down(self, event) -> bool:
+        if self._pathfind_mode:
+            return True
+        pos = pygame.mouse.get_pos()
+        board_hit = self._find_board_hit(pos)
+        if not board_hit:
+            return True
+        grid_name, cell_ind = board_hit
+
+        if event.button == 1:
+            self._left_button_down = True
+            self._modify_cell(grid_name, cell_ind, OBSTACLE)
+        elif event.button == 2:
+            self._modify_cell(grid_name, cell_ind, EMPTY)
+        elif event.button == 3:
+            self._modify_cell(grid_name, cell_ind, STARTING_POINT)
+        self._needs_flip = True
+        return True
+
+    def _handle_mouse_up(self, event) -> bool:
+        if event.button == 1:
+            self._left_button_down = False
+        return True
+
+    def _handle_motion(self, event) -> bool:
+        if not self._left_button_down or self._pathfind_mode:
+            return True
+        pos = pygame.mouse.get_pos()
+        board_hit = self._find_board_hit(pos)
+        if board_hit:
+            grid_name, cell_ind = board_hit
+            self._modify_cell(grid_name, cell_ind, OBSTACLE)
+            self._needs_flip = True
+        return True
+
+    # -------------------------------------------------------------------------
+    #  Aktionen
+    # -------------------------------------------------------------------------
+    def _modify_cell(self, grid_name: str, cell_ind: tuple[int, int], new_type: str) -> None:
+        self.drawing_grids[grid_name].change_type_of_cell(cell_ind, new_type)
+        if grid_name == MAIN_GRID:
+            self.drawing_grids[ROVER_GRID].change_type_of_cell(cell_ind, new_type)
+            self._show_sensor_data()
+
+    def _toggle_pathfinding(self) -> None:
+        self._pathfind_mode = not self._pathfind_mode
+        logger.info(f"Pathfind mode: {self._pathfind_mode}")
+        if self._pathfind_mode:
+            self._start_time = time.time()
+        self._needs_flip = True
+
+    def _clear_all(self) -> None:
+        self._reset_pathfinder_vars()
+        for dg in self.drawing_grids.values():
+            dg.clear_board()
+        self._pathfind_finished = False
+
+    def _clear_grid_under_mouse(self) -> None:
+        hit = self._find_board_hit(pygame.mouse.get_pos())
+        if hit:
+            self.drawing_grids[hit[0]].clear_board()
+
+    def _set_target(self) -> None:
+        hit = self._find_board_hit(pygame.mouse.get_pos())
+        if hit:
+            grid_name, cell_ind = hit
+            self.drawing_grids[grid_name].change_type_of_cell(cell_ind, TARGET)
+            self.drawing_grids[ROVER_GRID].change_type_of_cell(cell_ind, TARGET)
+
+    def _generate_maze(self) -> None:
+        self.drawing_grids[ROVER_GRID].create_random_maze()
+        self.drawing_grids[SENSOR_GRID].clear_board()
+        self._reset_pathfinder_vars()
+        self._draw_all()
+        self._show_sensor_data()
+        self._pathfind_finished = False
+
+    def _print_debug_info(self) -> None:
+        rover = self.drawing_grids[ROVER_GRID].grid
+        print("--------------Debugging Info--------------------")
+        print("Starting Points:", rover.starting_points)
+        print("Targets:", rover.targets)
+        print("Obstacles:", rover.obstacles)
+        print("--------------Pathfinder Info-------------------")
+        print("Seen Points:", rover.seen_points)
+        print("Way Points:", rover.way_points)
+        print("------------------------------------------------\n")
+
+    def _toggle_current_path(self) -> None:
+        if self._pathfind_mode and not self._pathfind_finished:
+            self._show_current_path = not self._show_current_path
+            self.drawing_grids[ROVER_GRID].clear_current_path()
+            if self._show_current_path and self._last_step_cell and self._pf:
+                path_cells = self._pf.get_parents(self._last_step_cell)
+                for pc in path_cells:
+                    self.drawing_grids[ROVER_GRID].change_type_of_cell(pc.get_cell_ind(), CURRENT_PATH_CELL)
+
+    def _save(self) -> None:
+        self.save_board(MAIN_GRID, "rover_grid.txt")
+
+    def _load_default(self) -> None:
+        self.load_board(ROVER_GRID, "rover_grid.txt")
+        self.load_board(MAIN_GRID, "rover_grid.txt")
+        self._draw_all()
+        self._show_sensor_data()
+
+    def _load_board(self, number: int) -> None:
+        filename = f"{number}.txt"
+        logger.info(f"Lade Board {number}")
+        self.load_board(ROVER_GRID, filename)
+        self.load_board(MAIN_GRID, filename)
+        self._draw_all()
+        self._show_sensor_data()
+
+    # -------------------------------------------------------------------------
+    #  Zeichenhilfen
+    # -------------------------------------------------------------------------
+    def _draw_all(self) -> None:
+        for dg in self.drawing_grids.values():
+            dg.draw_board()
+
+    # -------------------------------------------------------------------------
+    #  Hauptschleife
+    # -------------------------------------------------------------------------
+    def mainloop(self) -> None:
+        self._draw_all()
         pygame.display.flip()
 
-        left_click_button_down = False
+        self._left_button_down = False
+        self._pathfind_mode = False
+        self._pathfind_finished = False
+        self._show_current_path = False
+        self._start_time = None
+        self._end_time = None
         running = True
-        pathfind_mode = False
-        pathfind_finished = False
-        show_current_path = False
-        start_time = None
-        end_time = None
+
+        event_handlers: dict[int, Callable[[pygame.event.Event], bool]] = {
+            pygame.QUIT: self._handle_quit,
+            self.TEN_MILLISECOND_TIMEOUT: self._handle_timer,
+            pygame.KEYDOWN: self._handle_keydown,
+            pygame.MOUSEBUTTONDOWN: self._handle_mouse_down,
+            pygame.MOUSEBUTTONUP: self._handle_mouse_up,
+        }
 
         while running:
-            needs_flip = False
+            self._needs_flip = False
 
             for event in pygame.event.get():
-                pos_mouse = pygame.mouse.get_pos()
+                handler = event_handlers.get(event.type)
+                if handler:
+                    result = handler(event)
+                    if result is False:
+                        running = False
+                        break
+                if event.type == pygame.MOUSEMOTION:
+                    self._handle_motion(event)
 
-                if event.type == pygame.QUIT:
-                    running = False
-
-                elif event.type == self.TEN_MILLISECOND_TIMEOUT and pathfind_mode and not pathfind_finished and not show_current_path:
-                    finished = self.pathfind_step_by_step(batch_size=20)
-                    if finished:
-                        print("pathfinder finished")
-                        pathfind_finished = True
-                        end_time = time.time()
-                        self.draw_boards()
-                        if start_time is not None:
-                            print(f"Pathfinding took {end_time - start_time:.4f} seconds")
-                    needs_flip = True
-
-                elif event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_RETURN:
-                        pathfind_mode = not pathfind_mode
-                        print("Pathfinding mode:", pathfind_mode)
-                        if pathfind_mode:
-                            start_time = time.time()
-                        needs_flip = True
-
-                    elif event.key == pygame.K_SPACE and not pathfind_mode:
-                        self.reset_pathfinder_vars()
-                        self.clear_boards()
-                        pathfind_finished = False
-                        needs_flip = True
-
-                    elif event.key == pygame.K_c and not pathfind_mode:
-                        board_hit = self.find_board_hit(pos_mouse)
-                        if board_hit:
-                            grid_name, cell_ind = board_hit
-                            self.clear_board(grid_name)
-                            needs_flip = True
-
-                    elif event.key == pygame.K_p and not pathfind_mode:
-                        board_hit = self.find_board_hit(pos_mouse)
-                        if board_hit:
-                            grid_name, cell_ind = board_hit
-                            cell_ind = self.drawing_grids[grid_name].change_type_of_cell(self.screen, cell_ind, TARGET)
-                            self.drawing_grids[ROVER_GRID].change_type_of_cell(self.screen, cell_ind, TARGET)
-                            needs_flip = True
-
-                    elif event.key == pygame.K_m and not pathfind_mode:
-                        self.create_random_maze(ROVER_GRID)
-                        self.clear_board(SENSOR_GRID)
-                        self.reset_pathfinder_vars()
-                        self.draw_boards()
-                        self.show_sensor_data()
-                        pathfind_finished = False
-                        needs_flip = True
-
-                    elif event.key == pygame.K_i:
-                        print("--------------Debugging Info--------------------")
-                        print("Starting Points:", self.drawing_grids[ROVER_GRID].grid.starting_points)
-                        print("Targets:", self.drawing_grids[ROVER_GRID].grid.targets)
-                        print("Obstacles:", self.drawing_grids[ROVER_GRID].grid.obstacles)
-                        print("--------------Pathfinder Info-------------------")
-                        print("Seen Points:", self.drawing_grids[ROVER_GRID].grid.seen_points)
-                        print("Way Points:", self.drawing_grids[ROVER_GRID].grid.way_points)
-                        print("------------------------------------------------")
-                        print()
-
-                    elif event.key == pygame.K_j and pathfind_mode and not pathfind_finished:
-                        self.drawing_grids[ROVER_GRID].clear_current_path(self.screen)
-                        show_current_path = not show_current_path
-                        if self.pathfind_step_by_step(show_current_path=show_current_path, batch_size=20):
-                            print("pathfinder finished")
-                            pathfind_finished = True
-                        needs_flip = True
-
-                    elif event.key == pygame.K_r and not pathfind_mode:
-                        self.reset_pathfinder()
-                        needs_flip = True
-
-                    elif event.key == pygame.K_s and not pathfind_mode:
-                        self.save_board(MAIN_GRID, "rover_grid.txt")
-
-                    elif event.key == pygame.K_l and not pathfind_mode:
-                        self.load_board(ROVER_GRID, "rover_grid.txt")
-                        self.load_board(MAIN_GRID, "rover_grid.txt")
-                        needs_flip = True
-
-                    elif event.key == pygame.K_1 and not pathfind_mode:
-                        print("Loading board 1")
-                        self.load_board(ROVER_GRID, "1.txt")
-                        self.load_board(MAIN_GRID, "1.txt")
-                        self.show_sensor_data()
-                        needs_flip = True
-
-                    elif event.key == pygame.K_2 and not pathfind_mode:
-                        print("Loading board 2")
-                        self.load_board(ROVER_GRID, "2.txt")
-                        self.load_board(MAIN_GRID, "2.txt")
-                        self.show_sensor_data()
-                        needs_flip = True
-
-                    elif event.key == pygame.K_3 and not pathfind_mode:
-                        print("Loading board 3")
-                        self.load_board(ROVER_GRID, "3.txt")
-                        self.load_board(MAIN_GRID, "3.txt")
-                        self.show_sensor_data()
-                        needs_flip = True
-
-                    elif event.key == pygame.K_4 and not pathfind_mode:
-                        print("Loading board 4")
-                        self.load_board(ROVER_GRID, "4.txt")
-                        self.load_board(MAIN_GRID, "4.txt")
-                        self.show_sensor_data()
-                        needs_flip = True
-
-                elif event.type == self.MOUSEBUTTONDOWN and not pathfind_mode:
-                    if event.button == 1:
-                        left_click_button_down = True
-                        board_hit = self.find_board_hit(pos_mouse)
-                        if board_hit:
-                            grid_name, cell_ind = board_hit
-                            self.drawing_grids[grid_name].change_type_of_cell(self.screen, cell_ind, OBSTACLE)
-                            self.drawing_grids[ROVER_GRID].change_type_of_cell(self.screen, cell_ind, OBSTACLE)
-                            if grid_name == MAIN_GRID:
-                                self.clear_board(SENSOR_GRID)
-                                self.show_sensor_data()
-                            needs_flip = True
-
-                    if event.button == 2:
-                        board_hit = self.find_board_hit(pos_mouse)
-                        if board_hit:
-                            grid_name, cell_ind = board_hit
-                            self.drawing_grids[grid_name].change_type_of_cell(self.screen, cell_ind, EMPTY)
-                            self.drawing_grids[ROVER_GRID].change_type_of_cell(self.screen, cell_ind, EMPTY)
-                            if grid_name == MAIN_GRID:
-                                self.clear_board(SENSOR_GRID)
-                                self.show_sensor_data()
-                            needs_flip = True
-
-                    if event.button == 3:
-                        board_hit = self.find_board_hit(pos_mouse)
-                        if board_hit:
-                            grid_name, cell_ind = board_hit
-                            self.drawing_grids[grid_name].change_type_of_cell(self.screen, cell_ind, STARTING_POINT)
-                            self.drawing_grids[ROVER_GRID].change_type_of_cell(self.screen, cell_ind, STARTING_POINT)
-                            if grid_name == MAIN_GRID:
-                                self.clear_board(SENSOR_GRID)
-                                self.show_sensor_data()
-                            needs_flip = True
-
-                elif event.type == self.MOUSEBUTTONUP and not pathfind_mode:
-                    left_click_button_down = False
-
-                if event.type == self.MOUSEMOTION and left_click_button_down and not pathfind_mode:
-                    board_hit = self.find_board_hit(pos_mouse)
-                    if board_hit:
-                        grid_name, cell_ind = board_hit
-                        self.drawing_grids[grid_name].change_type_of_cell(self.screen, cell_ind, OBSTACLE)
-                        self.drawing_grids[ROVER_GRID].change_type_of_cell(self.screen, cell_ind, OBSTACLE)
-                        if grid_name == MAIN_GRID:
-                            self.clear_board(SENSOR_GRID)
-                            self.show_sensor_data()
-                        needs_flip = True
-
-            if needs_flip:
+            if self._needs_flip:
                 pygame.display.flip()
+            self.clock.tick(FPS)
 
-            self.clock.tick(100)
+
+if __name__ == "__main__":
+    print("DrawingBoard – wird über main.py gestartet.")

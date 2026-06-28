@@ -1,191 +1,156 @@
-# pathfinder.py
+"""
+Pfadfindungsalgorithmen (A* und Dijkstra) als schrittweise Generatoren.
+"""
+
 from __future__ import annotations
-import math
 import heapq
 import itertools
+import logging
+from typing import Generator, Tuple, Set, Optional, Callable
 
 from cell import Cell
 from grid import Grid
 from constants import *
 
-class Node:
-    def __init__(self, cell: Cell, parent: Node | None = None, 
-                 dist: float = float("inf")) -> None:
-        self.cell = cell
-        self.parent = parent
-        self.dist = dist
+logger = logging.getLogger(__name__)
 
 
 class Pathfinder:
     def __init__(self, grid: Grid) -> None:
         self.grid = grid
-        
-        self.G = {cell: Node(cell)
-            for row in self.grid.grid for cell in row}
-                
-        self.queue: list[tuple[float, int, Cell]] = []
-        self.visited: set[Cell] = set()
-        
-        self.counter = itertools.count()
-        self.start_cells: set[Cell] = set()
-        self.end_cell: Cell | None = None
+        # Wird bei find() gesetzt
+        self._came_from: dict[Cell, Cell | None] = {}
 
-    def dijkstra(self):
-        changed_cells = set()
-        current_cell = None
-        
-        for sp in self.start_cells:
-            self.G[sp].dist = 0.0
-            heapq.heappush(self.queue, (0, next(self.counter), sp))
-        
-        while self.queue:
-            current_dist, _, current_cell = heapq.heappop(self.queue)
-            if current_cell in self.visited:
+    # -------------------------------------------------------------------------
+    #  Allgemeine Suche (Generator)
+    # -------------------------------------------------------------------------
+    def _search(
+        self,
+        start_cells: set[Cell],
+        end_cell: Cell,
+        heuristic: Callable[[Cell, Cell], float],
+    ) -> Generator[Tuple[Set[Cell], Cell | None], None, None]:
+        came_from: dict[Cell, Cell | None] = {}
+        g_score: dict[Cell, float] = {cell: float('inf') for row in self.grid.grid for cell in row}
+        queue: list[tuple[float, int, Cell]] = []
+        visited: set[Cell] = set()
+        counter = itertools.count()
+
+        for start in start_cells:
+            g_score[start] = 0.0
+            heapq.heappush(queue, (heuristic(start, end_cell), next(counter), start))
+            came_from[start] = None
+
+        changed: set[Cell] = set()
+        current: Cell | None = None
+
+        while queue:
+            _, _, current = heapq.heappop(queue)
+            if current in visited:
                 continue
-            self.visited.add(current_cell)
-            
-            if current_cell in self.grid.targets:
-                print("Target reached!")
+            visited.add(current)
+
+            if current in self.grid.targets:
+                logger.debug("Ziel erreicht.")
                 break
-            
-            adjacent_cells = self.grid.get_adjacent_non_obstacle_cells(current_cell)
-            if adjacent_cells is None:
+
+            neighbours = self.grid.get_adjacent_non_obstacle_cells(current)
+            if not neighbours:
                 continue
-            
-            for adjacent_cell in adjacent_cells:
-                if not adjacent_cell:
-                    continue                
-                                
-                weight = adjacent_cell.dist(current_cell)
-                distance = self.G[current_cell].dist + weight
-                if distance < self.G[adjacent_cell].dist:
-                    self.G[adjacent_cell].dist = distance
-                    self.G[adjacent_cell].parent = self.G[current_cell]
-                    heapq.heappush(self.queue, (distance, next(self.counter), adjacent_cell))
-                    
-                    self.grid.find_and_change_type_of_cell(adjacent_cell.get_cell_ind(), SEEN_POINT)
-                    changed_cells.add(adjacent_cell)
-                         
-            if changed_cells:
-                yield changed_cells, current_cell
-                changed_cells = set()
-        return changed_cells, current_cell
-    
-    def a_star(self):
-        changed_cells = set()
-        current_cell = None
-        
-        if self.end_cell is None:
-            return  # Keine Zielzelle vorhanden – Abbruch
-        
-        for sp in self.start_cells:
-            self.G[sp].dist = 0.0
-            heapq.heappush(self.queue, (0, next(self.counter), sp))
-        
-        while self.queue:
-            current_dist, _, current_cell = heapq.heappop(self.queue)
-            if current_cell in self.visited:
-                continue
-            self.visited.add(current_cell)
-            
-            if current_cell in self.grid.targets:
-                print("Target reached!")
-                break
-            
-            adjacent_cells = self.grid.get_adjacent_non_obstacle_cells(current_cell)
-            
-            if adjacent_cells is None:
-                continue
-            
-            for adjacent_cell in adjacent_cells:
-                if not adjacent_cell:
-                    continue                
-                                
-                weight = adjacent_cell.dist(current_cell)
-                g_cost = self.G[current_cell].dist + weight                
-                h_cost = adjacent_cell.dist(self.end_cell)
-                f_cost = g_cost + h_cost
-                
-                if g_cost < self.G[adjacent_cell].dist:
-                    self.G[adjacent_cell].dist = g_cost
-                    self.G[adjacent_cell].parent = self.G[current_cell]
-                    heapq.heappush(self.queue, (f_cost, next(self.counter), adjacent_cell))
-                    
-                    self.grid.find_and_change_type_of_cell(adjacent_cell.get_cell_ind(), SEEN_POINT)
-                    changed_cells.add(adjacent_cell)
-                         
-            if changed_cells:
-                yield changed_cells, current_cell
-                changed_cells = set()
-        return changed_cells, current_cell
-    
-    def shortest_path(self, algorithm: str, start_cell: Cell | None = None, end_cell: Cell | None = None):
-        if algorithm == DIJKSTRA:
-            pathfinding_algorithm_gen = self.dijkstra()
-        elif algorithm == A_STAR:
-            pathfinding_algorithm_gen = self.a_star()
+
+            for nxt in neighbours:
+                weight = nxt.dist(current)
+                tentative_g = g_score[current] + weight
+                if tentative_g < g_score[nxt]:
+                    g_score[nxt] = tentative_g
+                    came_from[nxt] = current
+                    f = tentative_g + heuristic(nxt, end_cell)
+                    heapq.heappush(queue, (f, next(counter), nxt))
+                    result = self.grid.find_and_change_type_of_cell(nxt.get_cell_ind(), SEEN_POINT)
+                    if result:
+                        changed.update(result)
+
+            # Jetzt schon das aktuelle came_from speichern, damit get_parents funktioniert
+            self._came_from = came_from
+
+            if changed:
+                yield changed, current
+                changed = set()
+
+        # Am Ende ebenfalls sichern
+        self._came_from = came_from
+        if changed:
+            yield changed, current
+
+    # -------------------------------------------------------------------------
+    #  Konkrete Algorithmen
+    # -------------------------------------------------------------------------
+    def dijkstra(self, start_cells: set[Cell], end_cell: Cell) -> Generator[Tuple[Set[Cell], Cell | None], None, None]:
+        """Dijkstra = A* mit Heuristik 0."""
+        return self._search(start_cells, end_cell, lambda a, b: 0.0)
+
+    def a_star(self, start_cells: set[Cell], end_cell: Cell) -> Generator[Tuple[Set[Cell], Cell | None], None, None]:
+        return self._search(start_cells, end_cell, lambda a, b: a.dist(b))
+
+    # -------------------------------------------------------------------------
+    #  Hauptmethode
+    # -------------------------------------------------------------------------
+    def find(self, algorithm: str) -> Generator[Tuple[Set[Cell], Cell | None], None, None]:
+        if self.grid.seen_points:
+            start_cells = set(self.grid.seen_points)
         else:
-            pathfinding_algorithm_gen = self.dijkstra()
-            
-        while pathfinding_algorithm_gen:
-            try:
-                changed_cells, current_cell = next(pathfinding_algorithm_gen)
-                yield changed_cells, current_cell
-                changed_cells = set()
-            except StopIteration:
-                break
-        
-        changed_cells = set()
+            start_cells = set(self.grid.starting_points)
+
+        if not start_cells or not self.grid.targets:
+            logger.error("Keine Start- oder Zielzelle vorhanden.")
+            return
+
+        end_cell = next(iter(self.grid.targets))
+        start_cell = next(iter(start_cells))
+
+        if algorithm == A_STAR:
+            search_gen = self.a_star(start_cells, end_cell)
+        else:
+            search_gen = self.dijkstra(start_cells, end_cell)
+
+        # Phasen: 1) Suche ausführen
+        for changed, current in search_gen:
+            yield changed, current
+
+        # 2) Pfad rekonstruieren
         path = []
-        current_cell = end_cell
-        
-        while current_cell and current_cell != start_cell:
-            path.append(current_cell)
-            self.grid.find_and_change_type_of_cell(current_cell.get_cell_ind(), WAY_POINT)
-            changed_cells.add(current_cell)
-                
-            parent = self.G[current_cell].parent
-            if parent:
-                current_cell = parent.cell
-            else:
-                current_cell = None
-            
-            if changed_cells:    
-                yield changed_cells, current_cell
-                changed_cells = set()
-        return changed_cells, current_cell
-    
+        cur = end_cell
+        while cur is not None and cur != start_cell:
+            path.append(cur)
+            self.grid.find_and_change_type_of_cell(cur.get_cell_ind(), WAY_POINT)
+            cur = self._came_from.get(cur)
+
+        if path:
+            yield set(path), end_cell
+
     def get_parents(self, cell: Cell) -> list[Cell]:
         parents = []
-        current_cell = cell
-        while current_cell:
-            parents.append(current_cell)
-            parent_node = self.G[current_cell].parent
-            if parent_node:
-                current_cell = parent_node.cell
-            else:
-                break
-        return parents[::-1]
+        cur = cell
+        while cur is not None:
+            parents.append(cur)
+            cur = self._came_from.get(cur)
+        parents.reverse()
+        return parents
 
-    def find(self, algorithm: str):
-        if self.grid.seen_points:
-            self.start_cells = set(self.grid.seen_points)
-        else:
-            self.start_cells = set(self.grid.starting_points)
-        if not self.start_cells or not self.grid.targets:
-            return
-        start_cell = next(iter(self.start_cells))
-        self.end_cell = next(iter(self.grid.targets))
-        shortest_path_gen = self.shortest_path(algorithm, start_cell, self.end_cell)
-        changed_cells = set()
-        current_cell = None
-        
-        while shortest_path_gen:
-            try:
-                changed_cells, current_cell = next(shortest_path_gen) 
-                if changed_cells and current_cell:
-                    yield changed_cells, current_cell
-                    changed_cells = set()
-            except StopIteration:
-                break 
-        return
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.DEBUG)
+    g = Grid(10, 10)
+    g.find_and_change_type_of_cell((1, 1), STARTING_POINT)
+    g.find_and_change_type_of_cell((8, 8), TARGET)
+    g.find_and_change_type_of_cell((5, 5), OBSTACLE)
+
+    pf = Pathfinder(g)
+    gen = pf.find(A_STAR)
+    try:
+        while True:
+            changed, current = next(gen)
+            print(f"Changed: {len(changed)} cells, current: {current}")
+    except StopIteration:
+        pass
+    print("Pathfinder test completed.")
