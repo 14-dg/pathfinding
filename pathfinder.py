@@ -8,11 +8,9 @@ from cell import Cell
 from grid import Grid
 from constants import *
 
-from sensor_data import simulate_lidar_scan
-
 class Node:
-    def __init__(self, cell: Cell, parent: Node|None = None, 
-                 dist:float = float("inf")) -> None:
+    def __init__(self, cell: Cell, parent: Node | None = None, 
+                 dist: float = float("inf")) -> None:
         self.cell = cell
         self.parent = parent
         self.dist = dist
@@ -28,15 +26,15 @@ class Pathfinder:
         self.queue: list[tuple[float, int, Cell]] = []
         self.visited: set[Cell] = set()
         
-        self.counter = itertools.count()  # unique sequence count
-
-        
+        self.counter = itertools.count()
+        self.start_cells: set[Cell] = set()
+        self.end_cell: Cell | None = None
 
     def dijkstra(self):
         changed_cells = set()
         current_cell = None
         
-        for sp in self.grid.seen_points:
+        for sp in self.start_cells:
             self.G[sp].dist = 0.0
             heapq.heappush(self.queue, (0, next(self.counter), sp))
         
@@ -77,7 +75,10 @@ class Pathfinder:
         changed_cells = set()
         current_cell = None
         
-        for sp in self.grid.seen_points:
+        if self.end_cell is None:
+            return  # Keine Zielzelle vorhanden – Abbruch
+        
+        for sp in self.start_cells:
             self.G[sp].dist = 0.0
             heapq.heappush(self.queue, (0, next(self.counter), sp))
         
@@ -92,8 +93,6 @@ class Pathfinder:
                 break
             
             adjacent_cells = self.grid.get_adjacent_non_obstacle_cells(current_cell)
-            # adjacent_cells_inds = simulate_lidar_scan(self.grid, current_cell.get_cell_ind(), scan_range=3, points_per_rotation=90)[0]
-            # adjacent_cells = [self.grid.grid[r][c] for r, c in adjacent_cells_inds]
             
             if adjacent_cells is None:
                 continue
@@ -104,7 +103,7 @@ class Pathfinder:
                                 
                 weight = adjacent_cell.dist(current_cell)
                 g_cost = self.G[current_cell].dist + weight                
-                h_cost = adjacent_cell.dist(self.grid.targets[0])
+                h_cost = adjacent_cell.dist(self.end_cell)
                 f_cost = g_cost + h_cost
                 
                 if g_cost < self.G[adjacent_cell].dist:
@@ -120,7 +119,7 @@ class Pathfinder:
                 changed_cells = set()
         return changed_cells, current_cell
     
-    def shortest_path(self, algorithm: str, start_cell: Cell|None = None, end_cell: Cell|None = None, ):
+    def shortest_path(self, algorithm: str, start_cell: Cell | None = None, end_cell: Cell | None = None):
         if algorithm == DIJKSTRA:
             pathfinding_algorithm_gen = self.dijkstra()
         elif algorithm == A_STAR:
@@ -137,8 +136,6 @@ class Pathfinder:
                 break
         
         changed_cells = set()
-
-        
         path = []
         current_cell = end_cell
         
@@ -156,7 +153,6 @@ class Pathfinder:
             if changed_cells:    
                 yield changed_cells, current_cell
                 changed_cells = set()
-            
         return changed_cells, current_cell
     
     def get_parents(self, cell: Cell) -> list[Cell]:
@@ -169,12 +165,18 @@ class Pathfinder:
                 current_cell = parent_node.cell
             else:
                 break
-        return parents[::-1]  # reverse to get from start to end
+        return parents[::-1]
 
-    def find(self, algorithm:str):
-        if self.grid.seen_points == []:
-            self.grid.seen_points = self.grid.starting_points.copy()
-        shortest_path_gen = self.shortest_path(algorithm, self.grid.starting_points[0], self.grid.targets[0])
+    def find(self, algorithm: str):
+        if self.grid.seen_points:
+            self.start_cells = set(self.grid.seen_points)
+        else:
+            self.start_cells = set(self.grid.starting_points)
+        if not self.start_cells or not self.grid.targets:
+            return
+        start_cell = next(iter(self.start_cells))
+        self.end_cell = next(iter(self.grid.targets))
+        shortest_path_gen = self.shortest_path(algorithm, start_cell, self.end_cell)
         changed_cells = set()
         current_cell = None
         
@@ -187,4 +189,3 @@ class Pathfinder:
             except StopIteration:
                 break 
         return
-
