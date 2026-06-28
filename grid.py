@@ -51,13 +51,21 @@ class Grid:
     #  Persistenz
     # -------------------------------------------------------------------------
     def save_grid(self, filename: str) -> None:
-        with open(filename, 'w') as f:
-            for row in self.grid:
-                f.write(','.join(cell.cell_type for cell in row) + '\n')
+        try:
+            with open(filename, 'w') as f:
+                for row in self.grid:
+                    f.write(','.join(cell.cell_type for cell in row) + '\n')
+        except OSError as e:
+            logger.error(f"Fehler beim Speichern von {filename}: {e}")
 
     def load_grid(self, filename: str) -> None:
-        with open(filename, 'r') as f:
-            lines = f.readlines()
+        try:
+            with open(filename, 'r') as f:
+                lines = f.readlines()
+        except OSError as e:
+            logger.error(f"Fehler beim Laden von {filename}: {e}")
+            return
+
         self.height = len(lines)
         self.width = len(lines[0].strip().split(','))
         self._create_grid()
@@ -80,10 +88,9 @@ class Grid:
         return self.grid[row][col].cell_type not in (TARGET, STARTING_POINT, OBSTACLE)
 
     # -------------------------------------------------------------------------
-    #  Interne Helfer – entfernen aus Spezialmengen ohne previous_type zu brauchen
+    #  Interne Helfer – entfernen aus Spezialmengen
     # -------------------------------------------------------------------------
     def _remove_from_sets(self, cell: Cell) -> None:
-        """Entfernt eine Zelle aus allen Spezialmengen."""
         self.targets.discard(cell)
         self.obstacles.discard(cell)
         self.starting_points.discard(cell)
@@ -114,8 +121,8 @@ class Grid:
 
     def _set_obstacle(self, cell_ind: tuple[int, int]) -> List[Cell]:
         cell = self.grid[cell_ind[0]][cell_ind[1]]
-        self._remove_from_sets(cell)                       # erst aus allen Mengen entfernen
-        self.change_type_of_cell(cell_ind, OBSTACLE)       # Typ setzen
+        self._remove_from_sets(cell)
+        self.change_type_of_cell(cell_ind, OBSTACLE)
         self.obstacles.add(cell)
         return [cell]
 

@@ -20,7 +20,6 @@ class Cell:
 
         self.cell_type: str = cell_type
         self.color: tuple[int, int, int] = CELL_COLOR[cell_type]
-        self.previous_type: str | None = None
 
     def __repr__(self) -> str:
         return f"Cell({self.row_ind}, {self.column_ind}, {self.cell_type}, {self.grid_name})"
@@ -38,17 +37,13 @@ class Cell:
         )
 
     def get_cell_ind(self) -> tuple[int, int]:
-        """Gibt (row_ind, column_ind) zurück."""
         return (self.row_ind, self.column_ind)
 
     def set_cell_type(self, cell_type: str) -> None:
-        """Setzt den Zelltyp, sichert vorherigen Typ und aktualisiert die Farbe."""
-        self.previous_type = self.cell_type
         self.cell_type = cell_type
         self.color = CELL_COLOR[cell_type]
 
     def dist(self, other: Cell) -> float:
-        """Euklidische Distanz zum Mittelpunkt einer anderen Zelle."""
         return ((self.row_ind - other.row_ind) ** 2 + (self.column_ind - other.column_ind) ** 2) ** 0.5
 
 

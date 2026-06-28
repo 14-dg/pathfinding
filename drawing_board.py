@@ -27,7 +27,6 @@ class DrawingBoard:
         self._find_gen = None
         self._last_step_cell: Optional[Cell] = None
 
-        # Zustandsvariablen (jetzt alle im Konstruktor)
         self._left_button_down = False
         self._pathfind_mode = False
         self._pathfind_finished = False
@@ -45,7 +44,6 @@ class DrawingBoard:
     def _init_pygame(self) -> None:
         pygame.init()
         pygame.font.init()
-        self.myfont = pygame.font.SysFont('Comic Sans MS', 50)
 
         self.MOUSEBUTTONUP = pygame.MOUSEBUTTONUP
         self.MOUSEBUTTONDOWN = pygame.MOUSEBUTTONDOWN
@@ -156,7 +154,6 @@ class DrawingBoard:
     #  Event-Handler
     # -------------------------------------------------------------------------
     def _handle_quit(self, event: pygame.event.Event) -> bool:
-        """Signalisiert das Ende der Hauptschleife. Rückgabe False beendet die Schleife."""
         return False
 
     def _handle_timer(self, event: pygame.event.Event) -> bool:

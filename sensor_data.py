@@ -13,8 +13,6 @@ from grid import Grid
 
 
 class LidarSimulator:
-    """Simuliert einen LIDAR-Scan auf einem gegebenen Grid."""
-
     def __init__(
         self,
         scan_range: int = 15,
@@ -28,12 +26,6 @@ class LidarSimulator:
     def simulate_scan(
         self, grid: Grid, position: tuple[int, int]
     ) -> tuple[set[tuple[int, int]], set[tuple[int, int]]]:
-        """
-        Führt einen Scan von `position` aus durch.
-        Returns:
-            free_cells: Menge von Koordinaten (row, col), die frei sind.
-            occupied_cells: Menge von Koordinaten, an denen ein Hindernis detektiert wurde.
-        """
         free = set()
         occupied = set()
         pos_row, pos_col = position
@@ -65,10 +57,6 @@ class LidarSimulator:
         return free, occupied
 
 
-# Modul-singleton für schnelle Aufrufe
-_default_simulator = LidarSimulator()
-
-
 def simulate_lidar_scan(
     grid: Grid,
     position: tuple[int, int],
@@ -76,7 +64,6 @@ def simulate_lidar_scan(
     points_per_rotation: int = 360,
     noise_factor_per: int = 0,
 ) -> tuple[set[tuple[int, int]], set[tuple[int, int]]]:
-    """Wrapper für Kompatibilität mit altem Code."""
     sim = LidarSimulator(scan_range, points_per_rotation, noise_factor_per)
     return sim.simulate_scan(grid, position)
 
