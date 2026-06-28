@@ -27,6 +27,7 @@ class DrawingBoard:
         self._find_gen = None
         self._last_step_cell: Optional[Cell] = None
 
+        # Zustandsvariablen
         self._left_button_down = False
         self._pathfind_mode = False
         self._pathfind_finished = False
@@ -34,6 +35,7 @@ class DrawingBoard:
         self._start_time: Optional[float] = None
         self._end_time: Optional[float] = None
         self._needs_flip = False
+        self._last_mouse_pos: Optional[tuple[int, int]] = None
 
         self._init_pygame()
         self._attach_grids()
@@ -151,6 +153,16 @@ class DrawingBoard:
         return None
 
     # -------------------------------------------------------------------------
+    #  Zellmodifikation (optional mit Sensor-Update)
+    # -------------------------------------------------------------------------
+    def _modify_cell(self, grid_name: str, cell_ind: tuple[int, int], new_type: str, update_sensor: bool = True) -> None:
+        self.drawing_grids[grid_name].change_type_of_cell(cell_ind, new_type)
+        if grid_name == MAIN_GRID:
+            self.drawing_grids[ROVER_GRID].change_type_of_cell(cell_ind, new_type)
+            if update_sensor:
+                self._show_sensor_data()
+
+    # -------------------------------------------------------------------------
     #  Event-Handler
     # -------------------------------------------------------------------------
     def _handle_quit(self, event: pygame.event.Event) -> bool:
@@ -196,7 +208,8 @@ class DrawingBoard:
     def _handle_mouse_down(self, event: pygame.event.Event) -> bool:
         if self._pathfind_mode:
             return True
-        pos = pygame.mouse.get_pos()
+        pos = event.pos
+        self._last_mouse_pos = pos   # Startpunkt für Linienzeichnung
         board_hit = self._find_board_hit(pos)
         if not board_hit:
             return True
@@ -215,28 +228,32 @@ class DrawingBoard:
     def _handle_mouse_up(self, event: pygame.event.Event) -> bool:
         if event.button == 1:
             self._left_button_down = False
+            self._last_mouse_pos = None
         return True
 
     def _handle_motion(self, event: pygame.event.Event) -> bool:
         if not self._left_button_down or self._pathfind_mode:
             return True
-        pos = pygame.mouse.get_pos()
-        board_hit = self._find_board_hit(pos)
-        if board_hit:
-            grid_name, cell_ind = board_hit
-            self._modify_cell(grid_name, cell_ind, OBSTACLE)
+        pos = event.pos
+        # Wir zeichnen nur auf MAIN_GRID, die Änderungen werden automatisch nach ROVER_GRID übertragen
+        if self._last_mouse_pos is None:
+            self._last_mouse_pos = pos
+            board_hit = self._find_board_hit(pos)
+            if board_hit:
+                self._modify_cell(board_hit[0], board_hit[1], OBSTACLE, update_sensor=False)
+                self._needs_flip = True
+        else:
+            cells = self.drawing_grids[MAIN_GRID].get_cells_between(self._last_mouse_pos, pos)
+            for cell_ind in cells:
+                self._modify_cell(MAIN_GRID, cell_ind, OBSTACLE, update_sensor=False)
+            self._last_mouse_pos = pos
+            self._show_sensor_data()   # einmal nach der gesamten Linie
             self._needs_flip = True
         return True
 
     # -------------------------------------------------------------------------
     #  Aktionen
     # -------------------------------------------------------------------------
-    def _modify_cell(self, grid_name: str, cell_ind: tuple[int, int], new_type: str) -> None:
-        self.drawing_grids[grid_name].change_type_of_cell(cell_ind, new_type)
-        if grid_name == MAIN_GRID:
-            self.drawing_grids[ROVER_GRID].change_type_of_cell(cell_ind, new_type)
-            self._show_sensor_data()
-
     def _toggle_pathfinding(self) -> None:
         self._pathfind_mode = not self._pathfind_mode
         logger.info(f"Pathfind mode: {self._pathfind_mode}")
@@ -245,10 +262,11 @@ class DrawingBoard:
         self._needs_flip = True
 
     def _clear_all(self) -> None:
+        self._pathfind_mode = False
+        self._pathfind_finished = False
         self._reset_pathfinder_vars()
         for dg in self.drawing_grids.values():
-            dg.clear_board()
-        self._pathfind_finished = False
+            dg.clear_board()        
 
     def _clear_grid_under_mouse(self) -> None:
         hit = self._find_board_hit(pygame.mouse.get_pos())

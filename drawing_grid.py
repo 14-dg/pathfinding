@@ -72,6 +72,24 @@ class DrawingGrid:
             return (-1, -1)
         return (row, col)
 
+    def get_cells_between(self, pos1: tuple[int, int], pos2: tuple[int, int]) -> list[tuple[int, int]]:
+        """Liefert alle Zellkoordinaten (row, col), die auf der Linie zwischen pos1 und pos2 liegen."""
+        x1, y1 = pos1
+        x2, y2 = pos2
+        dist = ((x2 - x1) ** 2 + (y2 - y1) ** 2) ** 0.5
+        # Schrittweite in Pixel – wir sampeln in Abständen von etwa einer halben Zellenbreite
+        step = max(1, (self.length_squares + self.margin) // 2)
+        num_steps = max(int(dist / step), 1)
+        cells = set()
+        for i in range(num_steps + 1):
+            t = i / num_steps
+            x = int(x1 + (x2 - x1) * t)
+            y = int(y1 + (y2 - y1) * t)
+            row, col = self.find_cell_hit((x, y))
+            if row != -1 and col != -1:
+                cells.add((row, col))
+        return list(cells)
+
     def change_type_of_cell(self, cell_ind: tuple[int, int], cell_type: str) -> None:
         self.grid.find_and_change_type_of_cell(cell_ind, cell_type)
 
