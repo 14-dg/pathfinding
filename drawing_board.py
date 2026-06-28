@@ -6,13 +6,12 @@ Verwaltet Fenster, Events und koordiniert die Grids.
 from __future__ import annotations
 import logging
 import time
-from typing import Optional, Tuple, Dict, Callable
+from typing import Optional, Callable
 
 import pygame
 
 from constants import *
 from cell import Cell
-from grid import Grid
 from pathfinder import Pathfinder
 from drawing_grid import DrawingGrid
 
@@ -26,7 +25,16 @@ class DrawingBoard:
 
         self._pf: Optional[Pathfinder] = None
         self._find_gen = None
-        self._last_step_cell: Optional[Cell] = None   # aktuelle Zelle des Algorithmus
+        self._last_step_cell: Optional[Cell] = None
+
+        # Zustandsvariablen (jetzt alle im Konstruktor)
+        self._left_button_down = False
+        self._pathfind_mode = False
+        self._pathfind_finished = False
+        self._show_current_path = False
+        self._start_time: Optional[float] = None
+        self._end_time: Optional[float] = None
+        self._needs_flip = False
 
         self._init_pygame()
         self._attach_grids()
@@ -106,12 +114,11 @@ class DrawingBoard:
                 self._reset_pathfinder_vars()
                 return True
 
-        self._last_step_cell = last_cell   # für Pfadanzeige merken
+        self._last_step_cell = last_cell
 
         if all_changed:
             if last_cell:
                 self._show_sensor_data(last_cell)
-
             if show_path and last_cell and self._pf:
                 self.drawing_grids[ROVER_GRID].clear_current_path()
                 path_cells = self._pf.get_parents(last_cell)
@@ -148,10 +155,11 @@ class DrawingBoard:
     # -------------------------------------------------------------------------
     #  Event-Handler
     # -------------------------------------------------------------------------
-    def _handle_quit(self, event) -> bool:
+    def _handle_quit(self, event: pygame.event.Event) -> bool:
+        """Signalisiert das Ende der Hauptschleife. Rückgabe False beendet die Schleife."""
         return False
 
-    def _handle_timer(self, event) -> bool:
+    def _handle_timer(self, event: pygame.event.Event) -> bool:
         if not (self._pathfind_mode and not self._pathfind_finished and not self._show_current_path):
             return True
         finished = self._pathfind_step(batch=PATHFINDING_BATCH_SIZE)
@@ -165,7 +173,7 @@ class DrawingBoard:
         self._needs_flip = True
         return True
 
-    def _handle_keydown(self, event) -> bool:
+    def _handle_keydown(self, event: pygame.event.Event) -> bool:
         key_actions: dict[int, Callable[[], None]] = {
             pygame.K_RETURN: self._toggle_pathfinding,
             pygame.K_SPACE: self._clear_all,
@@ -188,7 +196,7 @@ class DrawingBoard:
             self._needs_flip = True
         return True
 
-    def _handle_mouse_down(self, event) -> bool:
+    def _handle_mouse_down(self, event: pygame.event.Event) -> bool:
         if self._pathfind_mode:
             return True
         pos = pygame.mouse.get_pos()
@@ -207,12 +215,12 @@ class DrawingBoard:
         self._needs_flip = True
         return True
 
-    def _handle_mouse_up(self, event) -> bool:
+    def _handle_mouse_up(self, event: pygame.event.Event) -> bool:
         if event.button == 1:
             self._left_button_down = False
         return True
 
-    def _handle_motion(self, event) -> bool:
+    def _handle_motion(self, event: pygame.event.Event) -> bool:
         if not self._left_button_down or self._pathfind_mode:
             return True
         pos = pygame.mouse.get_pos()
@@ -316,20 +324,14 @@ class DrawingBoard:
         self._draw_all()
         pygame.display.flip()
 
-        self._left_button_down = False
-        self._pathfind_mode = False
-        self._pathfind_finished = False
-        self._show_current_path = False
-        self._start_time = None
-        self._end_time = None
         running = True
 
         event_handlers: dict[int, Callable[[pygame.event.Event], bool]] = {
-            pygame.QUIT: self._handle_quit,
+            pygame.QUIT:              self._handle_quit,
             self.TEN_MILLISECOND_TIMEOUT: self._handle_timer,
-            pygame.KEYDOWN: self._handle_keydown,
-            pygame.MOUSEBUTTONDOWN: self._handle_mouse_down,
-            pygame.MOUSEBUTTONUP: self._handle_mouse_up,
+            pygame.KEYDOWN:           self._handle_keydown,
+            pygame.MOUSEBUTTONDOWN:   self._handle_mouse_down,
+            pygame.MOUSEBUTTONUP:     self._handle_mouse_up,
         }
 
         while running:
@@ -337,9 +339,8 @@ class DrawingBoard:
 
             for event in pygame.event.get():
                 handler = event_handlers.get(event.type)
-                if handler:
-                    result = handler(event)
-                    if result is False:
+                if handler is not None:
+                    if not handler(event):
                         running = False
                         break
                 if event.type == pygame.MOUSEMOTION:

@@ -35,7 +35,6 @@ class Grid:
     #  Listener-System
     # -------------------------------------------------------------------------
     def add_change_listener(self, listener: Callable[[Cell], None]) -> None:
-        """Registriert eine Funktion, die bei jeder Zelländerung aufgerufen wird."""
         self._change_listeners.append(listener)
 
     def _notify_change(self, cell: Cell) -> None:
@@ -70,10 +69,6 @@ class Grid:
     #  Kern – Zelltyp ändern
     # -------------------------------------------------------------------------
     def change_type_of_cell(self, cell_ind: tuple[int, int], new_type: str) -> Cell:
-        """
-        Ändert den Typ einer Zelle und benachrichtigt Listener.
-        Gibt die betroffene Zelle zurück.
-        """
         row, col = cell_ind
         cell = self.grid[row][col]
         cell.set_cell_type(new_type)
@@ -85,28 +80,23 @@ class Grid:
         return self.grid[row][col].cell_type not in (TARGET, STARTING_POINT, OBSTACLE)
 
     # -------------------------------------------------------------------------
-    #  Interne Helfer für Typwechsel mit Set-Verwaltung
+    #  Interne Helfer – entfernen aus Spezialmengen ohne previous_type zu brauchen
     # -------------------------------------------------------------------------
-    def _set_empty(self, cell_ind: tuple[int, int]) -> Cell:
+    def _remove_from_sets(self, cell: Cell) -> None:
+        """Entfernt eine Zelle aus allen Spezialmengen."""
+        self.targets.discard(cell)
+        self.obstacles.discard(cell)
+        self.starting_points.discard(cell)
+        self.seen_points.discard(cell)
+        self.current_path_points.discard(cell)
+        self.way_points.discard(cell)
+
+    def _set_empty(self, cell_ind: tuple[int, int]) -> List[Cell]:
         cell = self.grid[cell_ind[0]][cell_ind[1]]
-        prev = cell.previous_type
-        # Aus allen speziellen Mengen entfernen
-        if prev == TARGET:
-            self.targets.discard(cell)
-        elif prev == STARTING_POINT:
-            self.starting_points.discard(cell)
-        elif prev == OBSTACLE:
-            self.obstacles.discard(cell)
-        elif prev == SEEN_POINT:
-            self.seen_points.discard(cell)
-        elif prev == CURRENT_PATH_CELL:
-            self.current_path_points.discard(cell)
-        elif prev == WAY_POINT:
-            self.way_points.discard(cell)
-        return self.change_type_of_cell(cell_ind, EMPTY)
+        self._remove_from_sets(cell)
+        return [self.change_type_of_cell(cell_ind, EMPTY)]
 
     def _set_target(self, cell_ind: tuple[int, int]) -> List[Cell]:
-        # Vorheriges Ziel entfernen
         if self.targets:
             old = self.targets.pop()
             self._set_empty(old.get_cell_ind())
@@ -124,10 +114,9 @@ class Grid:
 
     def _set_obstacle(self, cell_ind: tuple[int, int]) -> List[Cell]:
         cell = self.grid[cell_ind[0]][cell_ind[1]]
-        if cell.cell_type != OBSTACLE:
-            self._set_empty(cell_ind)
-            self.change_type_of_cell(cell_ind, OBSTACLE)
-            self.obstacles.add(cell)
+        self._remove_from_sets(cell)                       # erst aus allen Mengen entfernen
+        self.change_type_of_cell(cell_ind, OBSTACLE)       # Typ setzen
+        self.obstacles.add(cell)
         return [cell]
 
     def _set_seen_point(self, cell_ind: tuple[int, int]) -> List[Cell] | None:
@@ -166,7 +155,6 @@ class Grid:
         self._set_empty(cell_ind)
         return [self.change_type_of_cell(cell_ind, ROVER_POSITION)]
 
-    # Mapping von Typ zu Handler
     _TYPE_HANDLERS = {
         TARGET: _set_target,
         STARTING_POINT: _set_starting_point,
@@ -181,10 +169,6 @@ class Grid:
     }
 
     def find_and_change_type_of_cell(self, cell_ind: tuple[int, int], new_type: str) -> List[Cell] | None:
-        """
-        Öffentliche Schnittstelle zum Ändern eines Zelltyps.
-        Verwendet das interne Handler-Mapping.
-        """
         handler = self._TYPE_HANDLERS.get(new_type)
         if handler is None:
             raise ValueError(f"Unbekannter Zelltyp: {new_type}")
@@ -203,7 +187,9 @@ class Grid:
     def clear_board(self) -> None:
         for row in self.grid:
             for cell in row:
-                self._set_empty(cell.get_cell_ind())
+                self._remove_from_sets(cell)
+                cell.set_cell_type(EMPTY)
+                self._notify_change(cell)
         self.targets.clear()
         self.obstacles.clear()
         self.starting_points.clear()

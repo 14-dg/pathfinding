@@ -18,7 +18,6 @@ logger = logging.getLogger(__name__)
 class Pathfinder:
     def __init__(self, grid: Grid) -> None:
         self.grid = grid
-        # Wird bei find() gesetzt
         self._came_from: dict[Cell, Cell | None] = {}
 
     # -------------------------------------------------------------------------
@@ -70,14 +69,12 @@ class Pathfinder:
                     if result:
                         changed.update(result)
 
-            # Jetzt schon das aktuelle came_from speichern, damit get_parents funktioniert
-            self._came_from = came_from
+            self._came_from = came_from  # ← jetzt aktuell, damit get_parents funktioniert
 
             if changed:
                 yield changed, current
                 changed = set()
 
-        # Am Ende ebenfalls sichern
         self._came_from = came_from
         if changed:
             yield changed, current
@@ -86,7 +83,6 @@ class Pathfinder:
     #  Konkrete Algorithmen
     # -------------------------------------------------------------------------
     def dijkstra(self, start_cells: set[Cell], end_cell: Cell) -> Generator[Tuple[Set[Cell], Cell | None], None, None]:
-        """Dijkstra = A* mit Heuristik 0."""
         return self._search(start_cells, end_cell, lambda a, b: 0.0)
 
     def a_star(self, start_cells: set[Cell], end_cell: Cell) -> Generator[Tuple[Set[Cell], Cell | None], None, None]:
@@ -108,16 +104,11 @@ class Pathfinder:
         end_cell = next(iter(self.grid.targets))
         start_cell = next(iter(start_cells))
 
-        if algorithm == A_STAR:
-            search_gen = self.a_star(start_cells, end_cell)
-        else:
-            search_gen = self.dijkstra(start_cells, end_cell)
+        search_gen = self.a_star(start_cells, end_cell) if algorithm == A_STAR else self.dijkstra(start_cells, end_cell)
 
-        # Phasen: 1) Suche ausführen
         for changed, current in search_gen:
             yield changed, current
 
-        # 2) Pfad rekonstruieren
         path = []
         cur = end_cell
         while cur is not None and cur != start_cell:
@@ -144,7 +135,6 @@ if __name__ == "__main__":
     g.find_and_change_type_of_cell((1, 1), STARTING_POINT)
     g.find_and_change_type_of_cell((8, 8), TARGET)
     g.find_and_change_type_of_cell((5, 5), OBSTACLE)
-
     pf = Pathfinder(g)
     gen = pf.find(A_STAR)
     try:
