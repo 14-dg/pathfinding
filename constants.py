@@ -1,4 +1,4 @@
-
+# constants.py
 
 # colors
 BLACK  = (0, 0, 0)

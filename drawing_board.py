@@ -1,3 +1,4 @@
+# drawing_board.py
 import pygame
 import time
 from typing import Sequence

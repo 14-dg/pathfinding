@@ -1,4 +1,4 @@
-
+# main.py
 from constants import *
 from cell import Cell
 from grid import Grid
